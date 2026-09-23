@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#050505">
+<meta name="theme-color" content="#121212">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MT-byte">
@@ -12,89 +12,109 @@
 <title>MT-byte</title>
 <style>
 :root{
-  --bg:#050505; --surface:#131313; --line:#262626; --text:#f4f4f4; --muted:#8c8c8c; --accent:#ff6a13; --ink:#050505;
+  --bg:#121212; --elev:#181818; --surface:#242424; --hover:#2a2a2a; --line:#2a2a2a; --text:#ffffff; --muted:#a7a7a7; --dim:#727272;
+  --accent:#ff6a13; --ink:#000000; --err:#ff4d5e; --soft:#ffd23f;
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); color-scheme:dark;
 }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#050505; --surface:#131313; --line:#262626; --text:#f4f4f4; --muted:#8c8c8c; } }
-:root[data-theme="dark"]{ --bg:#050505; --surface:#131313; --line:#262626; --text:#f4f4f4; --muted:#8c8c8c; }
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#121212; --elev:#181818; --surface:#242424; --text:#ffffff; --muted:#a7a7a7; } }
+:root[data-theme="dark"]{ --bg:#121212; --elev:#181818; --surface:#242424; --text:#ffffff; --muted:#a7a7a7; }
+html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
 *,*::before,*::after{box-sizing:inherit}
-body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,"SF Pro Display","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-weight:300;font-size:17px;line-height:1.45;-webkit-font-smoothing:antialiased}
-#app{max-width:560px;margin:0 auto;padding:16px 20px 130px}
-h1{font-weight:200;font-size:34px;line-height:1.1;margin:20px 0 6px}
-h2{font-weight:300;font-size:23px;margin:32px 0 14px}
+body{margin:0;background:linear-gradient(180deg,#3a2213 0,var(--bg) 260px) no-repeat,var(--bg);color:var(--text);font-family:-apple-system,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-weight:400;font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased}
+#app{max-width:560px;margin:0 auto;padding:12px 16px 130px}
+h1{font-family:-apple-system,"SF Pro Display","Segoe UI",Roboto,sans-serif;font-weight:800;font-size:32px;line-height:1.05;letter-spacing:-.03em;margin:22px 0 6px}
+h2{font-weight:700;font-size:21px;letter-spacing:-.02em;margin:30px 0 12px}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.primary{display:block;width:100%;background:var(--accent);color:var(--ink);font-weight:500;padding:18px;margin:8px 0}
-.secondary{display:block;width:100%;background:var(--surface);padding:16px;margin:8px 0;font-weight:400}
-.ghost{color:var(--muted);padding:12px 0}
-.danger{color:var(--accent);padding:16px 0}
-.note{color:var(--muted);font-size:15px}
-.warn{color:var(--accent);font-size:15px}
-.acc{color:var(--accent)}
-.top{display:flex;align-items:center;gap:12px;min-height:44px}
-.top .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:400}
-.top button{padding:8px 0;min-width:32px}
-.off{font-size:13px;color:var(--accent)}
-.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:10px 0 0}
-.tabs button{padding:12px 4px;background:var(--surface);color:var(--muted);font-size:15px}
-.tabs button.cur{background:var(--text);color:var(--bg);font-weight:500}
-.tabs button.done:not(.cur){color:var(--text)}
-.job{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;padding:18px 0;border-bottom:1px solid var(--line);gap:12px}
-.job b{display:block;font-weight:400;font-size:19px}
-.job span{color:var(--muted);font-size:15px}
-.tag{font-size:14px;color:var(--muted);flex:0 0 auto}
+button:active{transform:scale(.98)}
+:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+.primary{display:block;width:100%;background:var(--accent);color:var(--ink);font-weight:700;padding:16px;margin:8px 0;border-radius:500px;font-size:16px}
+.secondary{display:block;width:100%;background:transparent;border:1px solid var(--dim);color:var(--text);padding:14px;margin:8px 0;font-weight:700;border-radius:500px}
+.ghost{color:var(--muted);padding:12px 0;font-weight:600;font-size:14px}
+.danger{color:var(--err);padding:16px 0;font-weight:700;display:block;margin:8px auto 0}
+.note{color:var(--muted);font-size:14px}
+.warn{color:var(--err);font-size:14px;font-weight:600}
+.acc{color:var(--err)}
+.hi{color:var(--text);font-weight:600}
+.top{display:flex;align-items:center;gap:12px;min-height:48px}
+.top .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:17px}
+.top button{width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.45);display:grid;place-items:center;flex:0 0 36px}
+.off{font-size:12px;font-weight:700;color:var(--ink);background:var(--soft);border-radius:500px;padding:3px 10px;display:inline-block}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0 0}
+.tabs button{padding:9px 4px;background:var(--surface);color:var(--text);font-size:14px;font-weight:600;border-radius:500px}
+.tabs button.cur{background:var(--accent);color:var(--ink);font-weight:700}
+.tabs button.done:not(.cur)::after{content:" ✓";color:var(--accent)}
+.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:18px 0 6px}
+.hero h1{margin:0}
+.count{color:var(--muted);font-size:14px;margin:0 0 18px}
+.job{display:flex;align-items:center;width:100%;text-align:left;padding:8px;margin:0 -8px;width:calc(100% + 16px);border-radius:6px;gap:12px}
+.job:active{background:var(--hover)}
+.job>div{flex:1;min-width:0}
+.job b{display:block;font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.job>div>span{display:block;color:var(--muted);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cover{flex:0 0 52px;height:52px;border-radius:4px;display:grid;place-items:center;background:linear-gradient(135deg,#3a3a3a,#1c1c1c);color:var(--muted)}
+.cover.s-pågår{background:linear-gradient(135deg,#ff8a3d,#b8420a);color:var(--ink)}
+.cover.s-klar{background:linear-gradient(135deg,#4a4a4a,#262626);color:var(--accent)}
+.cover svg.i{width:24px;height:24px;stroke-width:1.8}
+.tag{font-size:12px;font-weight:700;color:var(--muted);flex:0 0 auto}
 .tag.on{color:var(--accent)}
-label.f{display:block;margin:0 0 16px}
-label.f>span{display:block;color:var(--muted);font-size:14px;margin-bottom:6px}
-input,select,textarea{width:100%;background:var(--surface);color:var(--text);border:0;border-radius:0;font:inherit;font-weight:400;font-size:18px;padding:14px;-webkit-appearance:none;appearance:none}
+label.f{display:block;margin:0 0 14px}
+label.f>span{display:block;color:var(--muted);font-size:13px;font-weight:600;margin-bottom:6px}
+input,select,textarea{width:100%;background:var(--surface);color:var(--text);border:1px solid transparent;border-radius:6px;font:inherit;font-weight:500;font-size:17px;padding:13px 14px;-webkit-appearance:none;appearance:none}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--text)}
+input::placeholder{color:var(--dim)}
+select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 20px) 50%,calc(100% - 15px) 50%;background-size:5px 5px;background-repeat:no-repeat}
 textarea{min-height:84px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.regs small{display:block;font-size:14px;margin-top:6px;color:var(--muted)}
-.regs small.acc{color:var(--accent)}
-.stamp{display:flex;justify-content:space-between;align-items:center;background:var(--surface);padding:14px;margin-bottom:8px}
-.stamp .v{font-size:22px;font-variant-numeric:tabular-nums}
-.stamp button{color:var(--accent);font-weight:500;padding:8px 0}
-.big{font-size:52px;font-weight:200;line-height:1;font-variant-numeric:tabular-nums;margin:14px 0 4px}
-.check{display:flex;gap:14px;align-items:flex-start;width:100%;text-align:left;padding:14px 0;border-bottom:1px solid var(--line)}
-.box{flex:0 0 24px;height:24px;border:1px solid var(--muted);display:grid;place-items:center}
+.regs small{display:block;font-size:13px;margin-top:6px;color:var(--muted)}
+.regs small.acc{color:var(--err)}
+.stamp{display:flex;justify-content:space-between;align-items:center;background:var(--elev);padding:14px 16px;margin-bottom:8px;border-radius:8px}
+.stamp .v{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.stamp button{color:var(--ink);background:var(--text);font-weight:700;font-size:14px;padding:8px 16px;border-radius:500px}
+.big{font-size:56px;font-weight:800;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums;margin:14px 0 4px}
+.check{display:flex;gap:14px;align-items:center;width:100%;text-align:left;padding:14px 0;border-bottom:1px solid var(--line);font-weight:500}
+.box{flex:0 0 26px;height:26px;border:2px solid var(--dim);border-radius:50%;display:grid;place-items:center}
 .check.on .box{background:var(--accent);border-color:var(--accent)}
-.check.on .box::after{content:"";width:10px;height:5px;border:2px solid var(--ink);border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
-.k2{padding:16px 0;border-bottom:1px solid var(--line)}
-.k2 small{display:block;color:var(--muted);font-size:14px;margin-top:4px}
-.k2 small.acc{color:var(--accent)}
-.chips{display:flex;gap:6px;margin-top:10px}
-.chip{flex:1;min-width:0;padding:13px 4px;background:var(--surface);color:var(--muted);font-size:15px}
-.chip.ok{background:var(--text);color:var(--bg);font-weight:500}
-.chip.fel{background:var(--accent);color:var(--ink);font-weight:500}
-.chip.was{box-shadow:inset 0 -3px 0 var(--accent)}
-.fnote{margin-top:8px;font-size:16px;padding:12px}
+.check.on .box::after{content:"";width:10px;height:5px;border:2.5px solid var(--ink);border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.k2w{border-bottom:1px solid var(--line)}
+.k2{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:14px 0}
+.k2t{flex:1;min-width:0}
+.k2t>b{display:block;font-weight:600;font-size:15px;line-height:1.35}
+.k2 small{display:block;color:var(--muted);font-size:13px;margin-top:3px}
+.k2 small.hi{color:var(--text)}
+.k2.was .k2t>b::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--err);margin-right:8px;vertical-align:1px}
+.tick{flex:0 0 28px;height:28px;border-radius:50%;border:2px solid var(--dim);display:grid;place-items:center;transition:background .15s,border-color .15s}
+.k2.ok .tick{background:var(--accent);border-color:var(--accent)}
+.k2.ok .tick::after{content:"";width:11px;height:6px;border:2.5px solid var(--ink);border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.k2.fel .tick{background:var(--err);border-color:var(--err)}
+.k2.fel .tick::after{content:"✕";color:var(--ink);font-weight:800;font-size:14px;line-height:1}
+.k2.fel .k2t>b{color:var(--err)}
+.fnote{margin:0 0 14px;font-size:15px;padding:11px 12px}
 .photos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0 8px}
 .photos figure{margin:0;position:relative}
-.photos img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
-.photos button{position:absolute;top:0;right:0;background:rgba(0,0,0,.7);color:#fff;width:34px;height:34px}
-.camera{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:16px;border:1px solid var(--line);margin:4px 0 20px;cursor:pointer}
+.photos img{width:100%;aspect-ratio:1;object-fit:cover;display:block;border-radius:6px}
+.photos button{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.7);color:#fff;width:30px;height:30px;border-radius:50%}
+.camera{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;background:var(--elev);border-radius:8px;margin:4px 0 20px;cursor:pointer;font-weight:600}
 .camera input{display:none}
-svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.2;flex:0 0 auto}
-details{margin:20px 0;background:var(--surface);padding:14px}
-summary{cursor:pointer}
-table{width:100%;border-collapse:collapse;font-size:15px;margin:10px 0}
-td,th{padding:10px 6px 10px 0;border-bottom:1px solid var(--line);text-align:left;font-weight:300;font-variant-numeric:tabular-nums}
-th{color:var(--muted);font-size:13px;font-weight:400}
-tr.sel td{color:var(--accent)}
-.sum{background:var(--surface);padding:16px;margin:12px 0}
+svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+details{margin:20px 0;background:var(--elev);padding:14px 16px;border-radius:8px}
+summary{cursor:pointer;font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:10px 0}
+td,th{padding:10px 6px 10px 0;border-bottom:1px solid var(--line);text-align:left;font-weight:400;font-variant-numeric:tabular-nums}
+th{color:var(--muted);font-size:12px;font-weight:600}
+tr.sel td{color:var(--accent);font-weight:600}
+.sum{background:var(--elev);padding:16px;margin:12px 0;border-radius:8px}
 .sum p{margin:6px 0}
-.bar{position:fixed;left:0;right:0;bottom:0;background:var(--bg);padding:10px 20px calc(12px + env(safe-area-inset-bottom,0px))}
-.bar .primary{max-width:520px;margin:0 auto}
-#status{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);font-size:13px;color:var(--muted);pointer-events:none;transition:opacity .3s;opacity:0}
+.bar{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(180deg,rgba(18,18,18,0),var(--bg) 35%);padding:28px 16px calc(12px + env(safe-area-inset-bottom,0px))}
+.bar .primary{max-width:528px;margin:0 auto}
+#status{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);font-size:13px;font-weight:700;color:var(--ink);background:var(--text);border-radius:500px;padding:6px 14px;pointer-events:none;transition:opacity .3s;opacity:0;z-index:5}
 .empty{padding:36px 0;color:var(--muted)}
-.menu{display:flex;gap:22px;margin:18px 0 8px;flex-wrap:wrap}
-.mbtn{color:var(--muted);padding:8px 0;display:flex;gap:8px;align-items:center;cursor:pointer}
-.soft{color:#e0b43a;font-size:15px}
-.mid{font-size:28px;font-weight:300;margin:4px 0}
-.order{border-left:2px solid var(--accent)}
-.menu button{color:var(--muted);padding:8px 0;display:flex;gap:8px;align-items:center}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.menu{display:flex;gap:8px;margin:14px 0 10px;flex-wrap:wrap}
+.mbtn,.menu button{background:var(--surface);color:var(--text);padding:8px 14px;border-radius:500px;display:flex;gap:8px;align-items:center;cursor:pointer;font-size:14px;font-weight:600}
+.mbtn svg.i,.menu button svg.i{width:18px;height:18px}
+.soft{color:var(--soft);font-size:14px}
+.mid{font-size:28px;font-weight:800;letter-spacing:-.02em;margin:4px 0}
+.order{background:linear-gradient(135deg,#5a2a0e,var(--elev) 70%)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}button:active{transform:none}}
 </style>
 </head>
 <body>
@@ -121,7 +141,7 @@ const K2 = [
   {id:'splen', t:'Förbindelseledning huvudledning–spänningssäkring max 0,5 m', c:['OK']},
   {id:'diazed', t:'Spänningssäkring 10 A typ Diazed', c:['OK']}
 ];
-const K2N = K2.reduce((a,r)=>a+r.c.length,0);
+const K2N = K2.length;
 const SAFE = ['Sekundärkretsar kortslutna i provplint före arbete','Spänningslöshet kontrollerad på primärsidan'];
 const REGS = [
   {k:'r1',o:'1.8.0',t:'Aktiv uttag',u:'kWh'},
@@ -136,7 +156,9 @@ const ICON = {
   imp:'<svg class="i" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg>',
   back:'<svg class="i" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',
   cam:'<svg class="i" viewBox="0 0 24 24"><path d="M3 8h4l2-3h6l2 3h4v11H3z"/><circle cx="12" cy="13" r="3.5"/></svg>',
-  calc:'<svg class="i" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/></svg>'
+  calc:'<svg class="i" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/></svg>',
+  mt:'<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3"/></svg>',
+  trash:'<svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M10 7V4h4v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>'
 };
 
 /* ================= Lagring (IndexedDB) ================= */
@@ -176,8 +198,11 @@ function ratio(s){ const m=String(s||'').match(/([\d.,]+)\s*\/\s*([\d.,]+)/); if
 function dec(n,d=1){ return n==null?'—':n.toLocaleString('sv-SE',{maximumFractionDigits:d,minimumFractionDigits:d}); }
 function fmtT(iso){ return iso?new Date(iso).toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit'}):'—'; }
 function fmtDT(iso){ return new Date(iso).toLocaleString('sv-SE',{dateStyle:'short',timeStyle:'short'}); }
-function kc(j,ph,okOnly){ const k=j.kontroll[ph]||{}; return K2.reduce((a,r)=>a+r.c.filter(c=>okOnly?k[r.id+'.'+c]==='ok':!!k[r.id+'.'+c]).length,0); }
-function kfel(j,ph){ const k=j.kontroll[ph]||{}; return K2.map(r=>({r,f:r.c.filter(c=>k[r.id+'.'+c]==='fel')})).filter(x=>x.f.length); }
+/* En bock per uppgift. Äldre byten med bock per fas läses om automatiskt. */
+function kv(k,r){ k=k||{}; if(k[r.id]) return k[r.id];
+  const v=r.c.map(c=>k[r.id+'.'+c]); if(v.some(x=>x==='fel')) return 'fel'; if(v.length&&v.every(x=>x==='ok')) return 'ok'; return undefined; }
+function kc(j,ph,okOnly){ const k=j.kontroll[ph]||{}; return K2.filter(r=>{ const v=kv(k,r); return okOnly?v==='ok':!!v; }).length; }
+function kfel(j,ph){ const k=j.kontroll[ph]||{}; return K2.filter(r=>kv(k,r)==='fel').map(r=>({r,f:r.c.filter(c=>k[r.id+'.'+c]==='fel')})); }
 function ratioChanged(j){ const o=ratio(j.fore.ratio), n=ratio(j.byte.ratio); return o&&n&&Math.abs(o-n)>1e-9; }
 function prim(s){ const m=String(s||'').match(/(\d+)\s*\//); return m?+m[1]:null; }
 function stripNr(s){ return String(s||'').replace(/[^\dA-Za-z]/g,''); }
@@ -230,16 +255,16 @@ function diffText(d,u){ return d==null?'':d<0?`Lägre än före (${dec(d,1)} ${u
 function checklist(j,ph){
   const k=j.kontroll[ph]||{}, notes=j.kontroll.note[ph]||{}, was=ph==='efter'?(j.kontroll.fore||{}):{};
   return K2.map(r=>{
-    const anyFel=r.c.some(c=>k[r.id+'.'+c]==='fel');
+    const v=kv(k,r), wasFel=kv(was,r)==='fel';
     let info='';
     if(r.id==='konstant'){
       const rs=ph==='fore'?j.fore.ratio:j.byte.ratio;
-      info = rs ? `<small class="acc">Mätaren ska vara programmerad för ${esc(rs)}.${ph==='efter'&&ratioChanged(j)?' Omsättningen är ändrad – kontrollera att mätaren är omprogrammerad.':''}</small>` : `<small>Fyll i omsättning ${ph==='fore'?'ovan':'under Byte'}.</small>`;
+      info = rs ? `<small class="hi">Mätaren ska vara programmerad för ${esc(rs)}.${ph==='efter'&&ratioChanged(j)?' Omsättningen är ändrad. Kontrollera att mätaren är omprogrammerad.':''}</small>` : `<small>Fyll i omsättning ${ph==='fore'?'ovan':'under Byte'}.</small>`;
     }
-    return `<div class="k2"><div>${r.t}</div>${r.h?`<small>${r.h}</small>`:''}${info}
-    <div class="chips">${r.c.map(c=>{ const v=k[r.id+'.'+c];
-      return `<button class="chip ${v||''} ${was[r.id+'.'+c]==='fel'?'was':''}" data-act="k2" data-ph="${ph}" data-k="${r.id}.${c}">${c}${v==='ok'?' ✓':v==='fel'?' ✕':''}</button>`; }).join('')}</div>
-    ${anyFel||notes[r.id]?`<input class="fnote" data-k="kontroll.note.${ph}.${r.id}" value="${esc(notes[r.id])}" placeholder="Beskriv felet">`:''}</div>`;
+    const scope=r.c===PLATS?`<small>${PLATS.join(', ')}</small>`:'';
+    return `<div class="k2w"><button class="k2 ${v||''} ${wasFel?'was':''}" data-act="k2" data-ph="${ph}" data-k="${r.id}" aria-label="${esc(r.t)}: ${v==='ok'?'OK':v==='fel'?'Fel':'ej kontrollerad'}">
+      <span class="k2t"><b>${r.t}</b>${r.h?`<small>${r.h}</small>`:''}${scope}${info}</span><span class="tick"></span></button>
+    ${v==='fel'||notes[r.id]?`<input class="fnote" data-k="kontroll.note.${ph}.${r.id}" value="${esc(notes[r.id])}" placeholder="Beskriv felet">`:''}</div>`;
   }).join('');
 }
 function schema(j){
@@ -254,7 +279,9 @@ function schema(j){
 function vList(){
   const off=!navigator.onLine?'<span class="off">Offline – allt sparas i telefonen</span>':'';
   const planned=jobs.filter(j=>j.status==='planerad').length;
-  return `<h1>Trafobyten</h1>${off}
+  const going=jobs.filter(j=>j.status==='pågår').length;
+  return `<div class="hero"><h1>Trafobyten</h1>${off}</div>
+  <p class="count">${jobs.length?[going&&going+' pågår',planned&&planned+' planerade',jobs.length-going-planned&&(jobs.length-going-planned)+' klara'].filter(Boolean).join(', '):'Inga byten än'}</p>
   <div class="menu"><label class="mbtn">${ICON.imp}Importera arbetsorder<input type="file" accept=".csv,.txt,text/csv,.xlsx,.xls" data-import="1" hidden></label><button data-act="borda">${ICON.calc}Börda</button></div>
   <button class="primary" data-act="new">Starta nytt byte</button>
   ${jobs.length>5?`<input data-q="1" value="${esc(st.q||'')}" placeholder="Sök adress, EAN eller order" style="margin:10px 0">`:''}
@@ -268,12 +295,12 @@ function jobList(){
   if(!jobs.length) return '<p class="empty">Inga byten än. Importera arbetsordern eller starta ett nytt byte.</p>';
   if(!list.length) return '<p class="empty">Inget matchar sökningen.</p>';
   return list.map(j=>`<button class="job" data-act="open" data-id="${j.id}">
-    <div><b>${esc(j.fore.adress||j.fore.ean||'Namnlöst byte')}</b><span>${j.order&&j.order.newRatio?esc(j.order.oldRatio+' → '+j.order.newRatio)+' · ':''}${esc(j.order&&j.order.ao||fmtDT(j.created))}</span></div>
+    <span class="cover s-${j.status}">${ICON.mt}</span><div><b>${esc(j.fore.adress||j.fore.ean||'Namnlöst byte')}</b><span>${j.order&&j.order.newRatio?esc(j.order.oldRatio+' → '+j.order.newRatio)+' · ':''}${esc(j.order&&j.order.ao||fmtDT(j.created))}</span></div>
     <span class="tag ${j.status==='pågår'?'on':''}">${j.status}</span></button>`).join('');
 }
 function vJob(){
   const j=job(), s=st.tab;
-  const head=`<div class="top"><button data-act="home" aria-label="Till listan">${ICON.back}</button><div class="t">${esc(j.fore.adress||j.fore.ean||'Nytt byte')}</div>${!navigator.onLine?'<span class="off">Offline</span>':''}</div>
+  const head=`<div class="top"><button data-act="home" aria-label="Till listan">${ICON.back}</button><div class="t">${esc(j.fore.adress||j.fore.ean||'Nytt byte')}</div>${!navigator.onLine?'<span class="off">Offline</span>':''}<button data-act="delete" aria-label="Radera bytet">${ICON.trash}</button></div>
   <div class="tabs">${TABS.map((n,i)=>`<button data-act="tab" data-s="${i}" class="${i===s?'cur':''} ${tabDone(j,i)?'done':''}">${n}</button>`).join('')}</div>`;
   const body=[tFore,tByte,tEfter,tKlart][s](j);
   const next=s<3?`<div class="bar"><button class="primary" data-act="next">Vidare till ${TABS[s+1]}</button></div>`:'';
@@ -302,8 +329,8 @@ function tFore(j){ return `${orderCard(j)}<h2>Anläggning</h2>
   ${regFields('fore')}
   ${photos('register-fore','Fota register')}
   <h2>Kontroll före byte</h2>
-  <p class="note">Som du hittar anläggningen, innan du rör något. Ett tryck OK, två tryck Fel.</p>
-  <p class="note" id="kc-fore">${kc(j,'fore')} av ${K2N} kontrollerade${kfel(j,'fore').length?` · ${kfel(j,'fore').length} rader med fel`:''}</p>
+  <p class="note">Som du hittar anläggningen, innan du rör något. Ett tryck OK, två tryck Fel, tre tryck tomt.</p>
+  <p class="note" id="kc-fore">${kc(j,'fore')} av ${K2N} kontrollerade${kfel(j,'fore').length?`, ${kfel(j,'fore').length} med fel`:''}</p>
   ${checklist(j,'fore')}
   ${schema(j)}
   ${f('Plombnummer som bryts','fore.plomb')}
@@ -333,7 +360,7 @@ function ratioWarn(j){
   return ratioChanged(j)?`<p class="warn">Omsättningen ändras från ${esc(j.fore.ratio)} till ${esc(j.byte.ratio)}. Mätaren visar primärvärden och måste programmeras om, annars blir mätningen fel från nu. Meddela nätbolaget.</p>`:'';
 }
 function tEfter(j){ return `<h2>Kontroll efter byte</h2>
-  <p class="note">Allt ska vara OK. Orange streck = var Fel före.</p>
+  <p class="note">Allt ska vara OK. Röd prick betyder att det var fel före.</p>
   <p class="note" id="kc-efter">${kc(j,'efter',true)} av ${K2N} OK</p>
   ${checklist(j,'efter')}
   ${schema(j)}
@@ -426,10 +453,70 @@ async function readText(file){
   try{ return new TextDecoder('utf-8',{fatal:true}).decode(buf).replace(/^\uFEFF/,''); }
   catch(e){ return new TextDecoder('windows-1252').decode(buf); }
 }
+/* Läser .xlsx direkt i telefonen, utan bibliotek och utan nät */
+async function unzipEntries(buf){
+  const u8=new Uint8Array(buf), dv=new DataView(buf); let e=-1;
+  for(let i=u8.length-22;i>=Math.max(0,u8.length-66000);i--){ if(dv.getUint32(i,true)===0x06054b50){ e=i; break; } }
+  if(e<0) throw new Error('Inte en xlsx-fil');
+  const n=dv.getUint16(e+10,true); let p=dv.getUint32(e+16,true); const out={};
+  for(let k=0;k<n;k++){
+    if(dv.getUint32(p,true)!==0x02014b50) break;
+    const method=dv.getUint16(p+10,true), size=dv.getUint32(p+20,true), nl=dv.getUint16(p+28,true), xl=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), lo=dv.getUint32(p+42,true);
+    const name=new TextDecoder().decode(u8.subarray(p+46,p+46+nl));
+    const start=lo+30+dv.getUint16(lo+26,true)+dv.getUint16(lo+28,true);
+    out[name]={method,data:u8.subarray(start,start+size)};
+    p+=46+nl+xl+cl;
+  }
+  return out;
+}
+async function unzipText(z,name){
+  const f=z[name]; if(!f) return null;
+  if(f.method===0) return new TextDecoder().decode(f.data);
+  const s=new Blob([f.data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return await new Response(s).text();
+}
+async function readXlsx(file){
+  if(typeof DecompressionStream==='undefined') throw new Error('Telefonen saknar stöd för xlsx');
+  const z=await unzipEntries(await file.arrayBuffer()), P=t=>new DOMParser().parseFromString(t,'application/xml');
+  const sst=[]; const ss=await unzipText(z,'xl/sharedStrings.xml');
+  if(ss) for(const si of P(ss).getElementsByTagName('si')) sst.push([...si.getElementsByTagName('t')].filter(t=>t.parentNode.nodeName!=='rPh').map(t=>t.textContent).join(''));
+  const rel={}; const rx=await unzipText(z,'xl/_rels/workbook.xml.rels');
+  if(rx) for(const r of P(rx).getElementsByTagName('Relationship')){ const t=r.getAttribute('Target'); rel[r.getAttribute('Id')]=t.startsWith('/')?t.slice(1):'xl/'+t; }
+  const wb=P(await unzipText(z,'xl/workbook.xml'));
+  const paths=[...wb.getElementsByTagName('sheet')].map(s=>rel[s.getAttribute('r:id')]).filter(Boolean);
+  const colIdx=ref=>{ let n=0; for(const ch of ref.replace(/\d+/g,'')) n=n*26+ch.charCodeAt(0)-64; return n-1; };
+  const sheets=[];
+  for(const path of paths){
+    const x=await unzipText(z,path); if(!x) continue;
+    const rows=[];
+    for(const row of P(x).getElementsByTagName('row')){
+      const arr=[];
+      for(const c of row.getElementsByTagName('c')){
+        const t=c.getAttribute('t'), vEl=c.getElementsByTagName('v')[0]; let val='';
+        if(t==='s') val=vEl?sst[+vEl.textContent]??'':'';
+        else if(t==='inlineStr') val=[...c.getElementsByTagName('t')].map(e=>e.textContent).join('');
+        else val=vEl?vEl.textContent:'';
+        arr[c.getAttribute('r')?colIdx(c.getAttribute('r')):arr.length]=val;
+      }
+      rows[row.getAttribute('r')?(+row.getAttribute('r')-1):rows.length]=Array.from(arr,v=>v??'');
+    }
+    sheets.push(Array.from(rows,r=>r||[]));
+  }
+  return sheets;
+}
+function headerAt(rows){
+  for(let i=0;i<Math.min(rows.length,15);i++) if((rows[i]||[]).some(x=>String(x).trim().toLowerCase()==='ean')) return i;
+  return -1;
+}
 async function importOrders(file){
-  if(/\.xlsx?$/i.test(file.name)){ alert('Spara arket som CSV först: Arkiv → Spara som → CSV UTF-8. Välj sedan den filen.'); return; }
-  const rows=parseCSV(await readText(file));
-  const h=(rows[0]||[]).map(x=>x.trim().toLowerCase());
+  if(/\.xls$/i.test(file.name)){ alert('Gammalt Excel-format (.xls). Spara som .xlsx eller CSV UTF-8 och försök igen.'); return; }
+  let rows;
+  if(/\.xlsx$/i.test(file.name)){
+    const sheets=await readXlsx(file);
+    rows=sheets.find(r=>headerAt(r)>=0)||sheets[0]||[];
+  } else rows=parseCSV(await readText(file));
+  const hi=Math.max(0,headerAt(rows)); rows=rows.slice(hi);
+  const h=(rows[0]||[]).map(x=>String(x).trim().toLowerCase());
   const col=fn=>h.findIndex(fn);
   const C={ ao:col(x=>x==='arbetsorder'), ean:col(x=>x==='ean'), adr:col(x=>x==='adress'), xlnt:col(x=>x.startsWith('xlnt')),
     upp:col(x=>x==='kommentar ökab'), nyc:col(x=>x==='nyckel'), ant:col(x=>x==='kommentar ökab/liro'),
@@ -463,7 +550,7 @@ async function protocolHtml(j){
   const mk=v=>v==='ok'?'OK':v==='fel'?'<b style="color:#c40">FEL</b>':'–';
   const kf=j.kontroll.fore||{}, ke=j.kontroll.efter||{}, nt=j.kontroll.note;
   const rows=K2.map(r=>`<tr><td>${r.t}${nt.fore[r.id]?`<br><i>Före: ${esc(nt.fore[r.id])}</i>`:''}${nt.efter[r.id]?`<br><i>Efter: ${esc(nt.efter[r.id])}</i>`:''}</td>
-    <td>${r.c.map(c=>`${c}&nbsp;${mk(kf[r.id+'.'+c])}`).join('<br>')}</td><td>${r.c.map(c=>`${c}&nbsp;${mk(ke[r.id+'.'+c])}`).join('<br>')}</td></tr>`).join('');
+    <td>${mk(kv(kf,r))}</td><td>${mk(kv(ke,r))}</td></tr>`).join('');
   const regs=REGS.map(r=>{const a=num(j.fore[r.k]),b=num(j.efter[r.k]);return `<tr><td>${r.o} ${r.t}</td><td>${esc(j.fore[r.k]||'—')}</td><td>${esc(j.efter[r.k]||'—')}</td><td>${a!=null&&b!=null?dec(b-a,1):'—'} ${r.u}</td></tr>`}).join('');
   const fF=kfel(j,'fore'), fE=kfel(j,'efter'), bo=j.borda&&j.borda.saved;
   const min=j.byte.start&&j.byte.slut?Math.round((new Date(j.byte.slut)-new Date(j.byte.start))/60000):'—';
@@ -472,8 +559,8 @@ async function protocolHtml(j){
 <h1>Protokoll – byte av mättransformatorer</h1>
 <p>LiRo Elteknik AB · Org.nr 559316-2752<br>Skapat ${fmtDT(j.created)} · Exporterat ${fmtDT(new Date().toISOString())}</p>
 <h2>Sammanfattning</h2>
-<p>Fel funna före byte: ${fF.length?`<span class="w">${fF.map(x=>esc(x.r.t)+' ('+x.f.join(', ')+')').join('; ')}</span>`:'Inga'}</p>
-<p>Fel kvar efter byte: ${fE.length?`<span class="w">${fE.map(x=>esc(x.r.t)+' ('+x.f.join(', ')+')').join('; ')}</span>`:'Inga'}</p>
+<p>Fel funna före byte: ${fF.length?`<span class="w">${fF.map(x=>esc(x.r.t)+(x.f.length?' ('+x.f.join(', ')+')':'')).join('; ')}</span>`:'Inga'}</p>
+<p>Fel kvar efter byte: ${fE.length?`<span class="w">${fE.map(x=>esc(x.r.t)+(x.f.length?' ('+x.f.join(', ')+')':'')).join('; ')}</span>`:'Inga'}</p>
 ${ratioChanged(j)?`<p class="w">Omsättning ändrad ${esc(j.fore.ratio)} → ${esc(j.byte.ratio)}. Mätaren ska programmeras om.</p>`:''}
 <h2>Anläggning</h2>
 <table>${j.order?`<tr><td>Arbetsorder</td><td>${esc(j.order.ao||'—')}</td></tr><tr><td>Beställt</td><td>${esc(j.order.uppdrag||'—')}</td></tr>`:''}<tr><td>EAN</td><td>${esc(j.fore.ean||'—')}</td></tr>
@@ -565,7 +652,7 @@ $app.addEventListener('change',async e=>{
   const t=e.target;
   if(t.tagName==='SELECT'&&t.dataset.k){ const j=job(); set(j,t.dataset.k,t.value); save(j); render(true); return; }
   if(t.tagName==='SELECT'&&t.dataset.b){ bt[t.dataset.b]=t.value; render(true); return; }
-  if(t.dataset.import&&t.files[0]){ const fl=t.files[0]; t.value=''; try{ await importOrders(fl); }catch(err){ alert('Kunde inte läsa filen. Spara arket som CSV UTF-8 och försök igen.'); } return; }
+  if(t.dataset.import&&t.files[0]){ const fl=t.files[0]; t.value=''; try{ await importOrders(fl); }catch(err){ alert('Kunde inte läsa filen ('+err.message+'). Prova att spara arket som CSV UTF-8 och välj den filen.'); } return; }
   const step=t.dataset.photo; if(!step||!t.files[0]) return;
   const j=job();
   try{
@@ -585,8 +672,8 @@ $app.addEventListener('click',async e=>{
   if(a==='next'){ st.tab=Math.min(3,st.tab+1); return render(); }
   if(a==='stamp'){ set(j,b.dataset.p,new Date().toISOString()); save(j); return render(true); }
   if(a==='safe'){ j.byte.safe[b.dataset.i]=!j.byte.safe[b.dataset.i]; save(j); return render(true); }
-  if(a==='k2'){ const ph=b.dataset.ph, k=b.dataset.k, cur=j.kontroll[ph][k], nx=cur==='ok'?'fel':cur==='fel'?null:'ok';
-    if(nx) j.kontroll[ph][k]=nx; else delete j.kontroll[ph][k]; save(j); return render(true); }
+  if(a==='k2'){ const ph=b.dataset.ph, r=K2.find(x=>x.id===b.dataset.k), kk=j.kontroll[ph]=j.kontroll[ph]||{}, cur=kv(kk,r), nx=cur==='ok'?'fel':cur==='fel'?null:'ok';
+    r.c.forEach(c=>delete kk[r.id+'.'+c]); if(nx) kk[r.id]=nx; else delete kk[r.id]; save(j); return render(true); }
   if(a==='delphoto'){ if(!confirm('Ta bort fotot?')) return; await dbDel('photos',b.dataset.id); URL.revokeObjectURL(photoUrls[b.dataset.id]); delete photoUrls[b.dataset.id]; photoMeta=photoMeta.filter(p=>p.id!==b.dataset.id); return render(true); }
   if(a==='borda') return openBorda(false);
   if(a==='borda-job') return openBorda(true);
@@ -602,7 +689,9 @@ $app.addEventListener('click',async e=>{
   if(a==='clearplanned'){ const n=jobs.filter(x=>x.status==='planerad').length; if(!confirm(`Ta bort ${n} uppdrag som inte är påbörjade? Påbörjade och klara byten påverkas inte.`)) return;
     for(const x of jobs.filter(x=>x.status==='planerad')) await dbDel('jobs',x.id); jobs=jobs.filter(x=>x.status!=='planerad'); return render(); }
   if(a==='finish'){ j.status=j.status==='klar'?'pågår':'klar'; save(j); return render(true); }
-  if(a==='delete'){ if(!confirm('Radera bytet och alla foton? Går inte att ångra. Har du skickat protokollet?')) return;
+  if(a==='delete'){ const n=(await photosOf(j.id)).length, namn=j.fore.adress||j.fore.ean||'detta byte';
+    const msg=j.status==='klar'?`Radera ${namn} och ${n} foton? Går inte att ångra. Har du skickat protokollet?`:`Radera ${namn}${n?` och ${n} foton`:''}? Går inte att ångra.`;
+    if(!confirm(msg)) return;
     for(const p of await photosOf(j.id)) await dbDel('photos',p.id); await dbDel('jobs',j.id);
     jobs=jobs.filter(x=>x.id!==j.id); st={view:'list'}; render(); }
 });
