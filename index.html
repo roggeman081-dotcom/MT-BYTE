@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050505">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MT-byte">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>MT-byte</title>
+<style>
+:root{
+  --bg:#050505; --surface:#131313; --line:#262626; --text:#f4f4f4; --muted:#8c8c8c; --accent:#ff6a13; --ink:#050505;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); color-scheme:dark;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#050505; --surface:#131313; --line:#262626; --text:#f4f4f4; --muted:#8c8c8c; } }
+:root[data-theme="dark"]{ --bg:#050505; --surface:#131313; --line:#262626; --text:#f4f4f4; --muted:#8c8c8c; }
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,"SF Pro Display","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-weight:300;font-size:17px;line-height:1.45;-webkit-font-smoothing:antialiased}
+#app{max-width:560px;margin:0 auto;padding:16px 20px 130px}
+h1{font-weight:200;font-size:34px;line-height:1.1;margin:20px 0 6px}
+h2{font-weight:300;font-size:23px;margin:32px 0 14px}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.primary{display:block;width:100%;background:var(--accent);color:var(--ink);font-weight:500;padding:18px;margin:8px 0}
+.secondary{display:block;width:100%;background:var(--surface);padding:16px;margin:8px 0;font-weight:400}
+.ghost{color:var(--muted);padding:12px 0}
+.danger{color:var(--accent);padding:16px 0}
+.note{color:var(--muted);font-size:15px}
+.warn{color:var(--accent);font-size:15px}
+.acc{color:var(--accent)}
+.top{display:flex;align-items:center;gap:12px;min-height:44px}
+.top .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:400}
+.top button{padding:8px 0;min-width:32px}
+.off{font-size:13px;color:var(--accent)}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:10px 0 0}
+.tabs button{padding:12px 4px;background:var(--surface);color:var(--muted);font-size:15px}
+.tabs button.cur{background:var(--text);color:var(--bg);font-weight:500}
+.tabs button.done:not(.cur){color:var(--text)}
+.job{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;padding:18px 0;border-bottom:1px solid var(--line);gap:12px}
+.job b{display:block;font-weight:400;font-size:19px}
+.job span{color:var(--muted);font-size:15px}
+.tag{font-size:14px;color:var(--muted);flex:0 0 auto}
+.tag.on{color:var(--accent)}
+label.f{display:block;margin:0 0 16px}
+label.f>span{display:block;color:var(--muted);font-size:14px;margin-bottom:6px}
+input,select,textarea{width:100%;background:var(--surface);color:var(--text);border:0;border-radius:0;font:inherit;font-weight:400;font-size:18px;padding:14px;-webkit-appearance:none;appearance:none}
+textarea{min-height:84px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.regs small{display:block;font-size:14px;margin-top:6px;color:var(--muted)}
+.regs small.acc{color:var(--accent)}
+.stamp{display:flex;justify-content:space-between;align-items:center;background:var(--surface);padding:14px;margin-bottom:8px}
+.stamp .v{font-size:22px;font-variant-numeric:tabular-nums}
+.stamp button{color:var(--accent);font-weight:500;padding:8px 0}
+.big{font-size:52px;font-weight:200;line-height:1;font-variant-numeric:tabular-nums;margin:14px 0 4px}
+.check{display:flex;gap:14px;align-items:flex-start;width:100%;text-align:left;padding:14px 0;border-bottom:1px solid var(--line)}
+.box{flex:0 0 24px;height:24px;border:1px solid var(--muted);display:grid;place-items:center}
+.check.on .box{background:var(--accent);border-color:var(--accent)}
+.check.on .box::after{content:"";width:10px;height:5px;border:2px solid var(--ink);border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.k2{padding:16px 0;border-bottom:1px solid var(--line)}
+.k2 small{display:block;color:var(--muted);font-size:14px;margin-top:4px}
+.k2 small.acc{color:var(--accent)}
+.chips{display:flex;gap:6px;margin-top:10px}
+.chip{flex:1;min-width:0;padding:13px 4px;background:var(--surface);color:var(--muted);font-size:15px}
+.chip.ok{background:var(--text);color:var(--bg);font-weight:500}
+.chip.fel{background:var(--accent);color:var(--ink);font-weight:500}
+.chip.was{box-shadow:inset 0 -3px 0 var(--accent)}
+.fnote{margin-top:8px;font-size:16px;padding:12px}
+.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0 8px}
+.photos figure{margin:0;position:relative}
+.photos img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.photos button{position:absolute;top:0;right:0;background:rgba(0,0,0,.7);color:#fff;width:34px;height:34px}
+.camera{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:16px;border:1px solid var(--line);margin:4px 0 20px;cursor:pointer}
+.camera input{display:none}
+svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.2;flex:0 0 auto}
+details{margin:20px 0;background:var(--surface);padding:14px}
+summary{cursor:pointer}
+table{width:100%;border-collapse:collapse;font-size:15px;margin:10px 0}
+td,th{padding:10px 6px 10px 0;border-bottom:1px solid var(--line);text-align:left;font-weight:300;font-variant-numeric:tabular-nums}
+th{color:var(--muted);font-size:13px;font-weight:400}
+tr.sel td{color:var(--accent)}
+.sum{background:var(--surface);padding:16px;margin:12px 0}
+.sum p{margin:6px 0}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--bg);padding:10px 20px calc(12px + env(safe-area-inset-bottom,0px))}
+.bar .primary{max-width:520px;margin:0 auto}
+#status{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);font-size:13px;color:var(--muted);pointer-events:none;transition:opacity .3s;opacity:0}
+.empty{padding:36px 0;color:var(--muted)}
+.menu{display:flex;gap:18px;margin:18px 0 8px}
+.menu button{color:var(--muted);padding:8px 0;display:flex;gap:8px;align-items:center}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="status"></div>
+<main id="app"><p class="empty">Startar…</p></main>
+<script>
+/* ================= Data från Öresundskrafts blad ================= */
+const TABS = ['Före','Byte','Efter','Klart'];
+const FAS = ['L1','L2','L3'], PLATS = ['Mätfack','Kopplingsplint','Mätaren'];
+const K2 = [
+  {id:'p1', t:'Strömtransformatorer P1 → P2, P1 mot nät', c:FAS},
+  {id:'s_trafo', t:'Strömriktning S1 → S2 vid strömtransformatorer', h:'S1: två blå kablar. En till PE/PEN, en till undersida kopplingsplint LxJI.', c:FAS},
+  {id:'s_plint', t:'Strömriktning S1 → S2 vid kortslutningsplint', h:'Följ kabeln från S1 till LxJI. S2 till undersida kopplingsplint LxI.', c:FAS},
+  {id:'s_matare', t:'Strömriktning S1 → S2 vid mätaren', h:'Följ kabeln från plintens inkommande sida till mätaren. Kolla riktningsändring och fasväxling.', c:FAS},
+  {id:'f_fack', t:'Ström- och spänningskrets samma fas vid mätfack', c:FAS},
+  {id:'f_plint', t:'Ström- och spänningskrets samma fas vid kortslutningsplint', c:FAS},
+  {id:'f_matare', t:'Ström- och spänningskrets samma fas vid mätaren', c:FAS},
+  {id:'konstant', t:'Omsättning i mätaren/systemet stämmer med trafon', c:['OK']},
+  {id:'hel_trafo', t:'Strömkrets inte kortsluten eller bruten vid trafo', c:FAS},
+  {id:'hel_prov', t:'Strömkrets inte kortsluten eller bruten vid provplint', c:FAS},
+  {id:'spanning', t:'Spänningskrets hel L1–L3', h:'Säkringar hela, 10 A diazed. Spänningskrets sluten i kortslutningsplint.', c:['OK']},
+  {id:'skruv', t:'Känn över alla åtkomliga plintskruvar', c:PLATS},
+  {id:'plomb', t:'Plomberingar', c:PLATS},
+  {id:'splen', t:'Förbindelseledning huvudledning–spänningssäkring max 0,5 m', c:['OK']},
+  {id:'diazed', t:'Spänningssäkring 10 A typ Diazed', c:['OK']}
+];
+const K2N = K2.reduce((a,r)=>a+r.c.length,0);
+const SAFE = ['Sekundärkretsar kortslutna i provplint före arbete','Spänningslöshet kontrollerad på primärsidan'];
+const REGS = [
+  {k:'r1',o:'1.8.0',t:'Aktiv uttag',u:'kWh'},
+  {k:'r2',o:'2.8.0',t:'Aktiv inmatning',u:'kWh'},
+  {k:'r3',o:'3.8.0',t:'Reaktiv uttag',u:'kvarh'},
+  {k:'r4',o:'4.8.0',t:'Reaktiv inmatning',u:'kvarh'}
+];
+const AREAS = [['2,5',0.35],['4',0.22],['6',0.15],['10',0.09]];
+const VAM = Object.fromEntries(AREAS);
+const ICON = {
+  back:'<svg class="i" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',
+  cam:'<svg class="i" viewBox="0 0 24 24"><path d="M3 8h4l2-3h6l2 3h4v11H3z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  calc:'<svg class="i" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/></svg>'
+};
+
+/* ================= Lagring (IndexedDB) ================= */
+let DB, jobs=[], photoUrls={}, photoMeta=[];
+function openDB(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open('mtbyte',1);
+    r.onupgradeneeded=()=>{ const d=r.result; d.createObjectStore('jobs',{keyPath:'id'}); d.createObjectStore('photos',{keyPath:'id'}).createIndex('job','jobId'); };
+    r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
+  });
+}
+function tx(store,mode,fn){
+  return new Promise((res,rej)=>{ const t=DB.transaction(store,mode); const q=fn(t.objectStore(store)); t.oncomplete=()=>res(q&&q.result); t.onerror=()=>rej(t.error); t.onabort=()=>rej(t.error); });
+}
+const dbPut=(s,v)=>tx(s,'readwrite',o=>o.put(v));
+const dbDel=(s,k)=>tx(s,'readwrite',o=>o.delete(k));
+const dbAll=s=>tx(s,'readonly',o=>o.getAll());
+const photosOf=id=>tx('photos','readonly',o=>o.index('job').getAll(id));
+
+let saveT;
+function save(j=job()){
+  clearTimeout(saveT);
+  saveT=setTimeout(()=>dbPut('jobs',j).then(()=>flash('Sparat')).catch(()=>flash('Kunde inte spara. Telefonens lagring kan vara full.')),250);
+}
+
+/* ================= Hjälpare ================= */
+let st={view:'list'};
+const $app=document.getElementById('app');
+function job(){ return jobs.find(j=>j.id===st.id); }
+function flash(t){ const s=document.getElementById('status'); s.textContent=t; s.style.opacity=1; clearTimeout(flash.t); flash.t=setTimeout(()=>s.style.opacity=0,1200); }
+function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function get(o,p){ return p.split('.').reduce((a,k)=>a==null?a:a[k],o); }
+function set(o,p,v){ const k=p.split('.'); let a=o; k.slice(0,-1).forEach(x=>{ if(a[x]==null) a[x]={}; a=a[x]; }); a[k.at(-1)]=v; }
+function num(v){ const n=parseFloat(String(v??'').replace(',','.').replace(/\s/g,'')); return isFinite(n)?n:null; }
+function ratio(s){ const m=String(s||'').match(/([\d.,]+)\s*\/\s*([\d.,]+)/); if(!m) return null; const a=num(m[1]),b=num(m[2]); return a&&b?a/b:null; }
+function dec(n,d=1){ return n==null?'—':n.toLocaleString('sv-SE',{maximumFractionDigits:d,minimumFractionDigits:d}); }
+function fmtT(iso){ return iso?new Date(iso).toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit'}):'—'; }
+function fmtDT(iso){ return new Date(iso).toLocaleString('sv-SE',{dateStyle:'short',timeStyle:'short'}); }
+function kc(j,ph,okOnly){ const k=j.kontroll[ph]||{}; return K2.reduce((a,r)=>a+r.c.filter(c=>okOnly?k[r.id+'.'+c]==='ok':!!k[r.id+'.'+c]).length,0); }
+function kfel(j,ph){ const k=j.kontroll[ph]||{}; return K2.map(r=>({r,f:r.c.filter(c=>k[r.id+'.'+c]==='fel')})).filter(x=>x.f.length); }
+function ratioChanged(j){ const o=ratio(j.fore.ratio), n=ratio(j.byte.ratio); return o&&n&&Math.abs(o-n)>1e-9; }
+function tabDone(j,i){
+  return [
+    ()=>j.fore.ean && j.fore.r1 && kc(j,'fore')===K2N,
+    ()=>j.byte.slut && j.byte.ratio && SAFE.every((_,x)=>j.byte.safe[x]),
+    ()=>j.efter.r1 && kc(j,'efter',true)===K2N,
+    ()=>j.status==='klar'
+  ][i]();
+}
+
+/* ================= Formulärdelar ================= */
+function f(label,p,o={}){
+  return `<label class="f"><span>${label}</span><input data-k="${p}" value="${esc(get(job(),p))}" ${o.im?`inputmode="${o.im}"`:''} ${o.ph?`placeholder="${o.ph}"`:''} autocomplete="off"></label>`;
+}
+function sel(label,p,opts){
+  const v=get(job(),p);
+  return `<label class="f"><span>${label}</span><select data-k="${p}">${opts.map(o=>`<option ${o===v?'selected':''}>${o}</option>`).join('')}</select></label>`;
+}
+function photos(step,label){
+  const list=photoMeta.filter(p=>p.step===step);
+  return `<div class="photos">${list.map(p=>`<figure><img src="${photoUrls[p.id]}" alt="Foto ${esc(step)}"><button data-act="delphoto" data-id="${p.id}" aria-label="Ta bort foto">×</button></figure>`).join('')}</div>
+  <label class="camera">${ICON.cam}<span>${label}</span><input type="file" accept="image/*" capture="environment" data-photo="${step}"></label>`;
+}
+function regFields(ph){
+  const j=job();
+  return `<div class="regs">${REGS.map(r=>{
+    const fv=num(j.fore[r.k]), ev=num(j[ph][r.k]), d=ph==='efter'&&fv!=null&&ev!=null?ev-fv:null;
+    return `<label class="f"><span>${r.o} ${r.t}, ${r.u}</span><input data-k="${ph}.${r.k}" value="${esc(j[ph][r.k])}" inputmode="decimal" autocomplete="off">
+    ${ph==='efter'?`<small id="d-${r.k}" class="${d!=null&&d<0?'acc':''}">${diffText(d,r.u)}</small>`:''}</label>`;
+  }).join('')}</div>`;
+}
+function diffText(d,u){ return d==null?'':d<0?`Lägre än före (${dec(d,1)} ${u}). Kontrollera avläsningen.`:`+${dec(d,1)} ${u} sedan före`; }
+function checklist(j,ph){
+  const k=j.kontroll[ph]||{}, notes=j.kontroll.note[ph]||{}, was=ph==='efter'?(j.kontroll.fore||{}):{};
+  return K2.map(r=>{
+    const anyFel=r.c.some(c=>k[r.id+'.'+c]==='fel');
+    let info='';
+    if(r.id==='konstant'){
+      const rs=ph==='fore'?j.fore.ratio:j.byte.ratio;
+      info = rs ? `<small class="acc">Mätaren ska vara programmerad för ${esc(rs)}.${ph==='efter'&&ratioChanged(j)?' Omsättningen är ändrad – kontrollera att mätaren är omprogrammerad.':''}</small>` : `<small>Fyll i omsättning ${ph==='fore'?'ovan':'under Byte'}.</small>`;
+    }
+    return `<div class="k2"><div>${r.t}</div>${r.h?`<small>${r.h}</small>`:''}${info}
+    <div class="chips">${r.c.map(c=>{ const v=k[r.id+'.'+c];
+      return `<button class="chip ${v||''} ${was[r.id+'.'+c]==='fel'?'was':''}" data-act="k2" data-ph="${ph}" data-k="${r.id}.${c}">${c}${v==='ok'?' ✓':v==='fel'?' ✕':''}</button>`; }).join('')}</div>
+    ${anyFel||notes[r.id]?`<input class="fnote" data-k="kontroll.note.${ph}.${r.id}" value="${esc(notes[r.id])}" placeholder="Beskriv felet">`:''}</div>`;
+  }).join('');
+}
+function schema(j){
+  const tns=(j.fore.nat||'').startsWith('TN-S');
+  return `<details><summary>Plintschema och färger</summary>
+  <table><tr><td>L1JI · L2JI · L3JI</td><td>Blå (S1)</td></tr><tr><td>L1I</td><td>Brun</td></tr><tr><td>L2I</td><td>Svart</td></tr><tr><td>L3I</td><td>Vit</td></tr>
+  <tr><td>L1U · L2U · L3U</td><td>Brun · svart · vit</td></tr><tr><td>${tns?'N / PE':'PEN'}</td><td>${tns?'Blå / grön-gul':'Grön-gul med blå tilläggsmärkning'}</td></tr></table>
+  <p class="note">Enledare i rör: blå till S1, svart till S2, separat kabel per fas märkt L1–L3 i båda ändar. Äldre trafo: K=P1, L=P2, k=S1, l=S2. P1 alltid mot nät. Spänningsledare 1,5 mm², max 0,5 m till 10 A diazed.</p></details>`;
+}
+
+/* ================= Vyer ================= */
+function vList(){
+  const off=!navigator.onLine?'<span class="off">Offline – allt sparas i telefonen</span>':'';
+  return `<h1>Trafobyten</h1>${off}
+  <div class="menu"><button data-act="borda">${ICON.calc}Bördaverktyg</button></div>
+  <button class="primary" data-act="new">Starta nytt byte</button>
+  ${jobs.length?jobs.slice().sort((a,b)=>b.created.localeCompare(a.created)).map(j=>`<button class="job" data-act="open" data-id="${j.id}">
+    <div><b>${esc(j.fore.adress||j.fore.ean||'Namnlöst byte')}</b><span>${esc(j.fore.ean||'')} ${fmtDT(j.created)}</span></div>
+    <span class="tag ${j.status==='klar'?'':'on'}">${j.status}</span></button>`).join('')
+  :'<p class="empty">Inga byten än. Starta när du står vid anläggningen.</p>'}`;
+}
+function vJob(){
+  const j=job(), s=st.tab;
+  const head=`<div class="top"><button data-act="home" aria-label="Till listan">${ICON.back}</button><div class="t">${esc(j.fore.adress||j.fore.ean||'Nytt byte')}</div>${!navigator.onLine?'<span class="off">Offline</span>':''}</div>
+  <div class="tabs">${TABS.map((n,i)=>`<button data-act="tab" data-s="${i}" class="${i===s?'cur':''} ${tabDone(j,i)?'done':''}">${n}</button>`).join('')}</div>`;
+  const body=[tFore,tByte,tEfter,tKlart][s](j);
+  const next=s<3?`<div class="bar"><button class="primary" data-act="next">Vidare till ${TABS[s+1]}</button></div>`:'';
+  return head+body+next;
+}
+function tFore(j){ return `<h2>Anläggning</h2>
+  ${f('EAN-nummer','fore.ean',{im:'numeric',ph:'735999…'})}
+  ${f('Adress','fore.adress')}
+  ${sel('Nätsystem','fore.nat',['TN-C 4-ledare','TN-S 5-ledare'])}
+  <div class="row2">${f('Mätarnummer','fore.matarnr',{im:'numeric'})}${f('Omsättning gammal trafo','fore.ratio',{ph:'200/5'})}</div>
+  <h2>Mätarställning före</h2>
+  <p class="note">Primärvärden. Fota varje register när det visas på displayen.</p><br>
+  ${regFields('fore')}
+  ${photos('register-fore','Fota register')}
+  <h2>Kontroll före byte</h2>
+  <p class="note">Som du hittar anläggningen, innan du rör något. Ett tryck OK, två tryck Fel.</p>
+  <p class="note" id="kc-fore">${kc(j,'fore')} av ${K2N} kontrollerade${kfel(j,'fore').length?` · ${kfel(j,'fore').length} rader med fel`:''}</p>
+  ${checklist(j,'fore')}
+  ${schema(j)}
+  ${f('Plombnummer som bryts','fore.plomb')}
+  ${photos('fore','Fota anläggningen före')}`; }
+function tByte(j){
+  const a=j.byte.start, b=j.byte.slut, min=a&&b?Math.round((new Date(b)-new Date(a))/60000):null;
+  const bo=j.borda&&j.borda.saved;
+  return `<h2>Före arbete</h2>
+  ${SAFE.map((c,i)=>`<button class="check ${j.byte.safe[i]?'on':''}" data-act="safe" data-i="${i}"><span class="box"></span><span>${c}</span></button>`).join('')}
+  <h2>Avbrott</h2>
+  <div class="stamp"><div><div class="note">Start</div><div class="v">${fmtT(a)}</div></div><button data-act="stamp" data-p="byte.start">${a?'Ändra till nu':'Registrera nu'}</button></div>
+  <div class="stamp"><div><div class="note">Slut</div><div class="v">${fmtT(b)}</div></div><button data-act="stamp" data-p="byte.slut">${b?'Ändra till nu':'Registrera nu'}</button></div>
+  ${min!=null?`<div class="big">${min}</div><p class="note">minuter utan mätning</p>`:''}
+  <h2>Ny trafo</h2>
+  ${f('Omsättning ny trafo','byte.ratio',{ph:'300/5'})}
+  <div id="rw">${ratioWarn(j)}</div>
+  <div class="row2">${f('Börda min VA','byte.bmin',{im:'decimal',ph:'0,1'})}${f('Börda max VA','byte.bmax',{im:'decimal',ph:'1,5'})}</div>
+  <button class="secondary" data-act="borda-job">${bo?`Börda sparad: ${dec(bo.tot,2)} VA · ${bo.ok?'OK':'Ej OK'} · öppna`:'Kontrollera bördan'}</button><br>
+  ${photos('byte','Fota ny trafo och märkskylt')}`;
+}
+function ratioWarn(j){
+  return ratioChanged(j)?`<p class="warn">Omsättningen ändras från ${esc(j.fore.ratio)} till ${esc(j.byte.ratio)}. Mätaren visar primärvärden och måste programmeras om, annars blir mätningen fel från nu. Meddela nätbolaget.</p>`:'';
+}
+function tEfter(j){ return `<h2>Kontroll efter byte</h2>
+  <p class="note">Allt ska vara OK. Orange streck = var Fel före.</p>
+  <p class="note" id="kc-efter">${kc(j,'efter',true)} av ${K2N} OK</p>
+  ${checklist(j,'efter')}
+  ${schema(j)}
+  <h2>Mätarställning efter</h2>
+  ${regFields('efter')}
+  ${photos('register-efter','Fota register')}
+  ${f('Nya plombnummer','efter.plomb')}
+  <label class="f"><span>Kommentar</span><textarea data-k="efter.kommentar">${esc(j.efter.kommentar)}</textarea></label>
+  ${photos('efter','Fota anläggningen efter')}`; }
+function tKlart(j){
+  const miss=[0,1,2].filter(i=>!tabDone(j,i)).map(i=>TABS[i]);
+  const fF=kfel(j,'fore'), fE=kfel(j,'efter');
+  return `<h2>Sammanfattning</h2>
+  <div class="sum">
+    ${miss.length?`<p class="warn">Inte klart: ${miss.join(', ')}</p>`:'<p>Alla steg ifyllda.</p>'}
+    <p>${fF.length?`<span class="acc">${fF.length} fel funna före byte</span>`:'Inga fel före byte'}</p>
+    <p>${fE.length?`<span class="acc">${fE.length} fel kvar efter byte</span>`:'Inga fel efter byte'}</p>
+    ${ratioChanged(j)?'<p class="acc">Omsättning ändrad – mätaren ska programmeras om</p>':''}
+    <p class="note">${photoMeta.length} foton</p>
+  </div>
+  <button class="primary" data-act="share">Skicka protokoll till mig</button>
+  <p class="note">Ett protokoll med alla foton. Välj Mail och skicka till dig själv, så finns det kvar även om telefonen försvinner.</p>
+  <button class="secondary" data-act="finish">${j.status==='klar'?'Öppna bytet igen':'Markera som klart'}</button>
+  <button class="danger" data-act="delete">Radera bytet</button>`;
+}
+
+/* ================= Bördaverktyg ================= */
+let bt={};
+function vBorda(){
+  const j=st.id?job():null;
+  const mn=num(bt.min), mx=num(bt.max), pl=num(bt.pl)??0, L=num(bt.langd);
+  const rows=AREAS.map(([a,v])=>{
+    let range='—';
+    if(mx!=null){ const hi=(mx-pl)/v, lo=mn!=null?Math.max(0,(mn-pl)/v):0;
+      range = hi<=0?'Går inte':lo>hi?'Går inte':`${lo>0?dec(lo,1)+'–':'max '}${dec(hi,1)} m`; }
+    let tot='', ok='';
+    if(L!=null){ const t=L*v+pl; tot=dec(t,2)+' VA'; if(mx!=null) ok=(t<=mx&&(mn==null||t>=mn))?'OK':'Ej OK'; }
+    return `<tr class="${a===bt.area?'sel':''}"><td>${a} mm²</td><td>${range}</td>${L!=null?`<td>${tot}</td><td>${ok}</td>`:''}</tr>`;
+  }).join('');
+  return `<div class="top"><button data-act="${j?'back-job':'home'}" aria-label="Tillbaka">${ICON.back}</button><div class="t">Bördaverktyg</div></div>
+  <h1>Hur lång får strömkabeln vara?</h1>
+  <p class="note">Enligt Öresundskrafts tabell, 5 A sekundärt. Längd räknas enkel väg mellan trafo och mätare.</p><br>
+  <div class="row2">${bf('Trafo börda min VA','min','0,1')}${bf('Trafo börda max VA','max','1,5')}</div>
+  <div class="row2">${bf('Mätare + plint VA','pl','0,3')}${bf('Kabellängd m (valfritt)','langd','')}</div>
+  <label class="f"><span>Kabelarea i anläggningen</span><select data-b="area">${AREAS.map(([a])=>`<option ${a===bt.area?'selected':''}>${a}</option>`).join('')}</select></label>
+  <div id="btout"><table><tr><th>Area</th><th>Tillåten längd</th>${L!=null?'<th>Börda</th><th></th>':''}</tr>${rows}</table>
+  ${mx==null?'<p class="note">Fyll i trafons max-börda från märkskylten.</p>':''}
+  ${verdict()}</div>
+  ${j?`<button class="primary" data-act="borda-save">Spara i protokollet</button>`:''}`;
+}
+function bf(l,k,ph){ return `<label class="f"><span>${l}</span><input data-b="${k}" value="${esc(bt[k])}" inputmode="decimal" placeholder="${ph}" autocomplete="off"></label>`; }
+function bCalc(){ const v=VAM[bt.area], L=num(bt.langd), pl=num(bt.pl)??0, mn=num(bt.min), mx=num(bt.max);
+  if(!v||L==null||mx==null) return null; const tot=L*v+pl; return {tot, ok:tot<=mx&&(mn==null||tot>=mn), over:tot>mx}; }
+function verdict(){ const c=bCalc(); if(!c) return '';
+  return c.ok?`<p>OK med ${bt.area} mm²: ${dec(c.tot,2)} VA.</p>`:c.over?`<p class="warn">Ej OK: ${dec(c.tot,2)} VA är över trafons max. Grövre kabel eller flytta mätaren närmare.</p>`:`<p class="warn">Ej OK: ${dec(c.tot,2)} VA är under trafons min.</p>`; }
+
+/* ================= Protokoll ================= */
+function blobToData(b){ return new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(b); }); }
+async function protocolHtml(j){
+  const ph=await photosOf(j.id);
+  const imgs=await Promise.all(ph.sort((a,b)=>a.t.localeCompare(b.t)).map(async p=>({step:p.step,t:p.t,src:await blobToData(p.blob)})));
+  const mk=v=>v==='ok'?'OK':v==='fel'?'<b style="color:#c40">FEL</b>':'–';
+  const kf=j.kontroll.fore||{}, ke=j.kontroll.efter||{}, nt=j.kontroll.note;
+  const rows=K2.map(r=>`<tr><td>${r.t}${nt.fore[r.id]?`<br><i>Före: ${esc(nt.fore[r.id])}</i>`:''}${nt.efter[r.id]?`<br><i>Efter: ${esc(nt.efter[r.id])}</i>`:''}</td>
+    <td>${r.c.map(c=>`${c}&nbsp;${mk(kf[r.id+'.'+c])}`).join('<br>')}</td><td>${r.c.map(c=>`${c}&nbsp;${mk(ke[r.id+'.'+c])}`).join('<br>')}</td></tr>`).join('');
+  const regs=REGS.map(r=>{const a=num(j.fore[r.k]),b=num(j.efter[r.k]);return `<tr><td>${r.o} ${r.t}</td><td>${esc(j.fore[r.k]||'—')}</td><td>${esc(j.efter[r.k]||'—')}</td><td>${a!=null&&b!=null?dec(b-a,1):'—'} ${r.u}</td></tr>`}).join('');
+  const fF=kfel(j,'fore'), fE=kfel(j,'efter'), bo=j.borda&&j.borda.saved;
+  const min=j.byte.start&&j.byte.slut?Math.round((new Date(j.byte.slut)-new Date(j.byte.start))/60000):'—';
+  return `<!DOCTYPE html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Protokoll trafobyte ${esc(j.fore.ean||'')}</title>
+<style>body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:820px;margin:24px auto;padding:0 16px;color:#111;line-height:1.4}h1{font-weight:300}h2{font-weight:400;border-bottom:1px solid #ccc;padding-bottom:4px;margin-top:28px}table{width:100%;border-collapse:collapse;font-size:14px}td,th{border-bottom:1px solid #ddd;padding:6px 4px;text-align:left;vertical-align:top}th{color:#666;font-weight:400}.w{color:#c40}img{width:100%;max-width:400px;display:block;margin:4px 0}figure{margin:0 0 16px}figcaption{font-size:13px;color:#666}</style></head><body>
+<h1>Protokoll – byte av mättransformatorer</h1>
+<p>LiRo Elteknik AB · Org.nr 559316-2752<br>Skapat ${fmtDT(j.created)} · Exporterat ${fmtDT(new Date().toISOString())}</p>
+<h2>Sammanfattning</h2>
+<p>Fel funna före byte: ${fF.length?`<span class="w">${fF.map(x=>esc(x.r.t)+' ('+x.f.join(', ')+')').join('; ')}</span>`:'Inga'}</p>
+<p>Fel kvar efter byte: ${fE.length?`<span class="w">${fE.map(x=>esc(x.r.t)+' ('+x.f.join(', ')+')').join('; ')}</span>`:'Inga'}</p>
+${ratioChanged(j)?`<p class="w">Omsättning ändrad ${esc(j.fore.ratio)} → ${esc(j.byte.ratio)}. Mätaren ska programmeras om.</p>`:''}
+<h2>Anläggning</h2>
+<table><tr><td>EAN</td><td>${esc(j.fore.ean||'—')}</td></tr><tr><td>Adress</td><td>${esc(j.fore.adress||'—')}</td></tr><tr><td>Nätsystem</td><td>${esc(j.fore.nat)}</td></tr><tr><td>Mätarnummer</td><td>${esc(j.fore.matarnr||'—')}</td></tr></table>
+<h2>Mätarställning (primärvärden)</h2>
+<table><tr><th>Register</th><th>Före</th><th>Efter</th><th>Diff</th></tr>${regs}</table>
+<h2>Byte</h2>
+<table><tr><td>Säkerhet före arbete</td><td>${SAFE.map((s,i)=>`${j.byte.safe[i]?'✓':'✕'} ${s}`).join('<br>')}</td></tr>
+<tr><td>Avbrott</td><td>${fmtT(j.byte.start)}–${fmtT(j.byte.slut)} (${min} min)</td></tr>
+<tr><td>Omsättning</td><td>${esc(j.fore.ratio||'—')} → ${esc(j.byte.ratio||'—')}</td></tr>
+<tr><td>Ny trafo börda</td><td>${esc(j.byte.bmin||'—')}–${esc(j.byte.bmax||'—')} VA</td></tr>
+<tr><td>Brutna plomber</td><td>${esc(j.fore.plomb||'—')}</td></tr><tr><td>Nya plomber</td><td>${esc(j.efter.plomb||'—')}</td></tr></table>
+${bo?`<h2>Börda i strömkrets</h2><p>${dec(num(bo.langd),1)} m × ${bo.area} mm² + ${esc(bo.pl)} VA = <b>${dec(bo.tot,2)} VA</b> mot trafons ${esc(bo.min||'—')}–${esc(bo.max)} VA: <b>${bo.ok?'OK':'<span class="w">Ej OK</span>'}</b></p>`:''}
+<h2>Checklista mätkrets kategori 2, före och efter</h2>
+<table><tr><th>Kontroll</th><th>Före</th><th>Efter</th></tr>${rows}</table>
+${j.efter.kommentar?`<h2>Kommentar</h2><p>${esc(j.efter.kommentar)}</p>`:''}
+<h2>Foton (${imgs.length})</h2>
+${imgs.map(i=>`<figure><img src="${i.src}" alt=""><figcaption>${esc(i.step)} · ${fmtDT(i.t)}</figcaption></figure>`).join('')}
+</body></html>`;
+}
+async function shareProtocol(j){
+  flash('Skapar protokoll…');
+  const html=await protocolHtml(j);
+  const name=`trafobyte-${(j.fore.ean||'utan-ean').replace(/\W/g,'')}-${j.created.slice(0,10)}.html`;
+  const file=new File([html],name,{type:'text/html'});
+  try{
+    if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:'Protokoll trafobyte'}); return; }
+  }catch(e){ if(e.name==='AbortError') return; }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(file); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  flash('Protokollet är sparat som fil');
+}
+
+/* ================= Foton ================= */
+function stampPhoto(file,j){
+  return new Promise((res,rej)=>{
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const m=1600, s=Math.min(1,m/Math.max(img.width,img.height)), c=document.createElement('canvas');
+      c.width=Math.round(img.width*s); c.height=Math.round(img.height*s);
+      const x=c.getContext('2d'); x.drawImage(img,0,0,c.width,c.height);
+      const txt=`${new Date().toLocaleString('sv-SE')}  ${j.fore.ean||''}`, fs=Math.max(16,Math.round(c.width/40));
+      x.font=`${fs}px sans-serif`; x.fillStyle='rgba(0,0,0,.6)'; x.fillRect(0,c.height-fs*1.8,c.width,fs*1.8);
+      x.fillStyle='#fff'; x.fillText(txt,fs*.6,c.height-fs*.6);
+      URL.revokeObjectURL(url); c.toBlob(b=>b?res(b):rej(),'image/jpeg',0.72);
+    };
+    img.onerror=rej; img.src=url;
+  });
+}
+async function loadPhotos(id){
+  Object.values(photoUrls).forEach(u=>URL.revokeObjectURL(u)); photoUrls={};
+  photoMeta=(await photosOf(id)).map(p=>{ photoUrls[p.id]=URL.createObjectURL(p.blob); return {id:p.id,step:p.step,t:p.t}; });
+}
+
+/* ================= Render och händelser ================= */
+function render(keep){
+  const y=window.scrollY;
+  $app.innerHTML = st.view==='list'?vList():st.view==='borda'?vBorda():vJob();
+  window.scrollTo(0,keep?y:0);
+}
+function newJob(){
+  const j={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), created:new Date().toISOString(), status:'pågår',
+    fore:{nat:'TN-C 4-ledare'}, byte:{safe:{}}, efter:{}, kontroll:{fore:{},efter:{},note:{fore:{},efter:{}}}, borda:{}};
+  jobs.push(j); save(j); openJob(j.id,0);
+}
+async function openJob(id,tab){
+  st={view:'job',id,tab:0}; await loadPhotos(id);
+  const j=job(); st.tab = tab ?? ([0,1,2].find(i=>!tabDone(j,i)) ?? 3);
+  render();
+}
+function openBorda(fromJob){
+  const j=fromJob?job():null;
+  bt = j&&j.borda&&j.borda.saved ? {...j.borda.saved} : {min:j?j.byte.bmin||'':'',max:j?j.byte.bmax||'':'',pl:'0,3',langd:'',area:'2,5'};
+  st={view:'borda',id:j?j.id:null,tab:1}; render();
+}
+
+$app.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.b){ bt[t.dataset.b]=t.value; const o=document.getElementById('btout'); const tmp=document.createElement('div'); tmp.innerHTML=vBorda(); o.innerHTML=tmp.querySelector('#btout').innerHTML; return; }
+  const k=t.dataset.k; if(!k) return;
+  const j=job(); set(j,k,t.value); save(j);
+  if(k==='byte.ratio'||k==='fore.ratio'){ const w=document.getElementById('rw'); if(w) w.innerHTML=ratioWarn(j); }
+  if(k.startsWith('efter.r')){ const r=REGS.find(x=>'efter.'+x.k===k), el=document.getElementById('d-'+r.k); const fv=num(j.fore[r.k]), ev=num(t.value), d=fv!=null&&ev!=null?ev-fv:null; el.className=d!=null&&d<0?'acc':''; el.textContent=diffText(d,r.u); }
+});
+$app.addEventListener('change',async e=>{
+  const t=e.target;
+  if(t.tagName==='SELECT'&&t.dataset.k){ const j=job(); set(j,t.dataset.k,t.value); save(j); render(true); return; }
+  if(t.tagName==='SELECT'&&t.dataset.b){ bt[t.dataset.b]=t.value; render(true); return; }
+  const step=t.dataset.photo; if(!step||!t.files[0]) return;
+  const j=job();
+  try{
+    const blob=await stampPhoto(t.files[0],j);
+    const p={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), jobId:j.id, step, blob, t:new Date().toISOString()};
+    await dbPut('photos',p); photoUrls[p.id]=URL.createObjectURL(blob); photoMeta.push({id:p.id,step,t:p.t});
+    flash('Foto sparat'); render(true);
+  }catch(err){ flash('Kunde inte spara fotot'); }
+});
+$app.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  const a=b.dataset.act, j=job();
+  if(a==='new') return newJob();
+  if(a==='open') return openJob(b.dataset.id);
+  if(a==='home'){ st={view:'list'}; return render(); }
+  if(a==='tab'){ st.tab=+b.dataset.s; return render(); }
+  if(a==='next'){ st.tab=Math.min(3,st.tab+1); return render(); }
+  if(a==='stamp'){ set(j,b.dataset.p,new Date().toISOString()); save(j); return render(true); }
+  if(a==='safe'){ j.byte.safe[b.dataset.i]=!j.byte.safe[b.dataset.i]; save(j); return render(true); }
+  if(a==='k2'){ const ph=b.dataset.ph, k=b.dataset.k, cur=j.kontroll[ph][k], nx=cur==='ok'?'fel':cur==='fel'?null:'ok';
+    if(nx) j.kontroll[ph][k]=nx; else delete j.kontroll[ph][k]; save(j); return render(true); }
+  if(a==='delphoto'){ if(!confirm('Ta bort fotot?')) return; await dbDel('photos',b.dataset.id); URL.revokeObjectURL(photoUrls[b.dataset.id]); delete photoUrls[b.dataset.id]; photoMeta=photoMeta.filter(p=>p.id!==b.dataset.id); return render(true); }
+  if(a==='borda') return openBorda(false);
+  if(a==='borda-job') return openBorda(true);
+  if(a==='back-job'){ st={view:'job',id:st.id,tab:1}; return render(); }
+  if(a==='borda-save'){ const c=bCalc(); if(!c){ flash('Fyll i kabellängd och trafons max-börda'); return; }
+    j.borda.saved={...bt,tot:c.tot,ok:c.ok}; if(bt.min) j.byte.bmin=bt.min; if(bt.max) j.byte.bmax=bt.max; save(j); st={view:'job',id:j.id,tab:1}; flash('Börda sparad i protokollet'); return render(); }
+  if(a==='share') return shareProtocol(j);
+  if(a==='finish'){ j.status=j.status==='klar'?'pågår':'klar'; save(j); return render(true); }
+  if(a==='delete'){ if(!confirm('Radera bytet och alla foton? Går inte att ångra. Har du skickat protokollet?')) return;
+    for(const p of await photosOf(j.id)) await dbDel('photos',p.id); await dbDel('jobs',j.id);
+    jobs=jobs.filter(x=>x.id!==j.id); st={view:'list'}; render(); }
+});
+window.addEventListener('online',()=>render(true));
+window.addEventListener('offline',()=>render(true));
+
+/* ================= Start ================= */
+(async()=>{
+  try{
+    DB=await openDB(); jobs=await dbAll('jobs');
+    if(navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+    render();
+  }catch(e){ $app.innerHTML='<p class="warn">Telefonens lagring gick inte att öppna. Stäng privat surfläge och försök igen.</p>'; }
+  if('serviceWorker' in navigator && location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
