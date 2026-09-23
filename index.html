@@ -429,12 +429,11 @@ function copyText(t){
   let ok=false; try{ ok=document.execCommand('copy'); }catch(e){} ta.remove(); return ok;
 }
 const ROWCOLS=['Gammalt mätarnr','Plint','Placering','Start avbrott','1.8.0 före','3.8.0 före','2.8.0 före','4.8.0 före','Säkring','Nytt mätarnr','Terminal','1.8.0 ny','3.8.0 ny','2.8.0 ny','4.8.0 ny'];
-function rowPreview(row){
-  const c=row.split('\t');
+function rowPreview(c){
   return `<div class="sum"><p class="note">Det här kopierades. Klistra in i cellen <i>gammal mätarnummer</i>.</p><table>${ROWCOLS.map((n,i)=>`<tr><td class="note">${n}</td><td>${esc(c[i]||'—')}</td></tr>`).join('')}</table>
   ${navigator.share?'<button class="secondary" data-act="sharerow">Dela raden istället</button>':''}</div>`;
 }
-function excelRow(j){
+function excelCells(j){
   const u=(v,unit)=>v?`${String(v).trim()} ${unit}`:'';
   const raw=j.order&&j.order.matarnrRaw;
   const mn = raw&&stripNr(raw)===stripNr(j.fore.matarnr) ? raw : (j.fore.matarnr?'*'+j.fore.matarnr:'');
@@ -444,8 +443,10 @@ function excelRow(j){
     j.fore.sakring?j.fore.sakring+' A':'',
     b&&j.byte.nyttnr?'*'+j.byte.nyttnr:'', b?j.byte.terminal||'':'',
     b?u(e.r1,'kWh'):'', b?u(e.r3,'kvarh'):'', b?u(e.r2,'kWh'):'', b?u(e.r4,'kvarh'):''];
-  return cells.map(x=>String(x).replace(/[\t\r\n]+/g,' ')).join('\t');
+  return cells.map(x=>String(x).replace(/[\t\r\n]+/g,' ').trim());
 }
+/* Celler med citattecken måste citeras, annars tolkar Excel " som början på ett fält och allt förskjuts. */
+function excelRow(j){ return excelCells(j).map(x=>/"/.test(x)?'"'+x.replace(/"/g,'""')+'"':x).join('\t'); }
 function parseCSV(text){
   const first=text.split(/\r?\n/)[0], d=[';','\t',','].sort((a,b)=>first.split(b).length-first.split(a).length)[0];
   const rows=[]; let row=[], fld='', q=false;
@@ -695,8 +696,8 @@ $app.addEventListener('click',async e=>{
   if(a==='share') return shareProtocol(j);
   if(a==='useorder'){ j.byte.ratio=j.order.newRatio; save(j); return render(true); }
   if(a==='bytt'){ j.byte.bytt=!j.byte.bytt; save(j); return render(true); }
-  if(a==='copyrow'){ const row=excelRow(j), ok=copyText(row), filled=row.split('\t').filter(x=>x.trim()).length;
-    document.getElementById('rowprev').innerHTML=rowPreview(row);
+  if(a==='copyrow'){ const row=excelRow(j), ok=copyText(row), filled=excelCells(j).filter(Boolean).length;
+    document.getElementById('rowprev').innerHTML=rowPreview(excelCells(j));
     if(ok){ flash(`Kopierat, ${filled} av 15 celler`); return; }
     try{ await navigator.clipboard.writeText(row); flash(`Kopierat, ${filled} av 15 celler`); }
     catch(err){ flash('Kunde inte kopiera. Använd Dela.'); } return; }
