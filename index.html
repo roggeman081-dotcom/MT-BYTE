@@ -383,7 +383,7 @@ function tKlart(j){
   </div>
   <button class="primary" data-act="copyrow">Kopiera rad till Excel</button>
   <p class="note">Klistra in i cellen <i>gammal mätarnummer</i> på rätt rad i arket. Fyller kolumnerna fram till startställning R-. Datum för utfört fyller du i själv.</p>
-  <textarea id="rowbox" readonly style="display:none;margin-top:8px;font-size:13px"></textarea>
+  <div id="rowprev"></div>
   <button class="secondary" data-act="share">Skicka protokoll till mig</button>
   <p class="note">Ett protokoll med alla foton. Välj Mail och skicka till dig själv, så finns det kvar även om telefonen försvinner.</p>
   <button class="secondary" data-act="finish">${j.status==='klar'?'Öppna bytet igen':'Markera som klart'}</button>
@@ -422,6 +422,18 @@ function verdict(){ const c=bCalc(); if(!c) return '';
 
 /* ================= Excel ================= */
 function stamp(iso){ if(!iso) return ''; const d=new Date(iso), p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+function copyText(t){
+  const ta=document.createElement('textarea'); ta.value=t; ta.setAttribute('readonly','');
+  ta.style.cssText='position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;font-size:16px';
+  document.body.appendChild(ta); ta.focus(); ta.setSelectionRange(0,t.length);
+  let ok=false; try{ ok=document.execCommand('copy'); }catch(e){} ta.remove(); return ok;
+}
+const ROWCOLS=['Gammalt mätarnr','Plint','Placering','Start avbrott','1.8.0 före','3.8.0 före','2.8.0 före','4.8.0 före','Säkring','Nytt mätarnr','Terminal','1.8.0 ny','3.8.0 ny','2.8.0 ny','4.8.0 ny'];
+function rowPreview(row){
+  const c=row.split('\t');
+  return `<div class="sum"><p class="note">Det här kopierades. Klistra in i cellen <i>gammal mätarnummer</i>.</p><table>${ROWCOLS.map((n,i)=>`<tr><td class="note">${n}</td><td>${esc(c[i]||'—')}</td></tr>`).join('')}</table>
+  ${navigator.share?'<button class="secondary" data-act="sharerow">Dela raden istället</button>':''}</div>`;
+}
 function excelRow(j){
   const u=(v,unit)=>v?`${String(v).trim()} ${unit}`:'';
   const raw=j.order&&j.order.matarnrRaw;
@@ -683,9 +695,12 @@ $app.addEventListener('click',async e=>{
   if(a==='share') return shareProtocol(j);
   if(a==='useorder'){ j.byte.ratio=j.order.newRatio; save(j); return render(true); }
   if(a==='bytt'){ j.byte.bytt=!j.byte.bytt; save(j); return render(true); }
-  if(a==='copyrow'){ const row=excelRow(j), box=document.getElementById('rowbox');
-    try{ await navigator.clipboard.writeText(row); flash('Raden är kopierad'); }
-    catch(err){ box.style.display='block'; box.value=row; box.focus(); box.select(); flash('Markera och kopiera texten'); } return; }
+  if(a==='copyrow'){ const row=excelRow(j), ok=copyText(row), filled=row.split('\t').filter(x=>x.trim()).length;
+    document.getElementById('rowprev').innerHTML=rowPreview(row);
+    if(ok){ flash(`Kopierat, ${filled} av 15 celler`); return; }
+    try{ await navigator.clipboard.writeText(row); flash(`Kopierat, ${filled} av 15 celler`); }
+    catch(err){ flash('Kunde inte kopiera. Använd Dela.'); } return; }
+  if(a==='sharerow'){ const row=excelRow(j); try{ await navigator.share({text:row}); }catch(err){} return; }
   if(a==='clearplanned'){ const n=jobs.filter(x=>x.status==='planerad').length; if(!confirm(`Ta bort ${n} uppdrag som inte är påbörjade? Påbörjade och klara byten påverkas inte.`)) return;
     for(const x of jobs.filter(x=>x.status==='planerad')) await dbDel('jobs',x.id); jobs=jobs.filter(x=>x.status!=='planerad'); return render(); }
   if(a==='finish'){ j.status=j.status==='klar'?'pågår':'klar'; save(j); return render(true); }
