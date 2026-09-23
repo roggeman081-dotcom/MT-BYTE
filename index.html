@@ -88,7 +88,11 @@ tr.sel td{color:var(--accent)}
 .bar .primary{max-width:520px;margin:0 auto}
 #status{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);font-size:13px;color:var(--muted);pointer-events:none;transition:opacity .3s;opacity:0}
 .empty{padding:36px 0;color:var(--muted)}
-.menu{display:flex;gap:18px;margin:18px 0 8px}
+.menu{display:flex;gap:22px;margin:18px 0 8px;flex-wrap:wrap}
+.mbtn{color:var(--muted);padding:8px 0;display:flex;gap:8px;align-items:center;cursor:pointer}
+.soft{color:#e0b43a;font-size:15px}
+.mid{font-size:28px;font-weight:300;margin:4px 0}
+.order{border-left:2px solid var(--accent)}
 .menu button{color:var(--muted);padding:8px 0;display:flex;gap:8px;align-items:center}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -127,7 +131,9 @@ const REGS = [
 ];
 const AREAS = [['2,5',0.35],['4',0.22],['6',0.15],['10',0.09]];
 const VAM = Object.fromEntries(AREAS);
+const SAKR = ['','16','20','25','35','50','63','80','100','125','160','200','250','315','400','500','630','800','1000'];
 const ICON = {
+  imp:'<svg class="i" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg>',
   back:'<svg class="i" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',
   cam:'<svg class="i" viewBox="0 0 24 24"><path d="M3 8h4l2-3h6l2 3h4v11H3z"/><circle cx="12" cy="13" r="3.5"/></svg>',
   calc:'<svg class="i" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/></svg>'
@@ -152,6 +158,7 @@ const photosOf=id=>tx('photos','readonly',o=>o.index('job').getAll(id));
 
 let saveT;
 function save(j=job()){
+  if(j.status==='planerad') j.status='pågår';
   clearTimeout(saveT);
   saveT=setTimeout(()=>dbPut('jobs',j).then(()=>flash('Sparat')).catch(()=>flash('Kunde inte spara. Telefonens lagring kan vara full.')),250);
 }
@@ -172,6 +179,23 @@ function fmtDT(iso){ return new Date(iso).toLocaleString('sv-SE',{dateStyle:'sho
 function kc(j,ph,okOnly){ const k=j.kontroll[ph]||{}; return K2.reduce((a,r)=>a+r.c.filter(c=>okOnly?k[r.id+'.'+c]==='ok':!!k[r.id+'.'+c]).length,0); }
 function kfel(j,ph){ const k=j.kontroll[ph]||{}; return K2.map(r=>({r,f:r.c.filter(c=>k[r.id+'.'+c]==='fel')})).filter(x=>x.f.length); }
 function ratioChanged(j){ const o=ratio(j.fore.ratio), n=ratio(j.byte.ratio); return o&&n&&Math.abs(o-n)>1e-9; }
+function prim(s){ const m=String(s||'').match(/(\d+)\s*\//); return m?+m[1]:null; }
+function stripNr(s){ return String(s||'').replace(/[^\dA-Za-z]/g,''); }
+function sakWarn(j,which){
+  const s=num(j.fore.sakring), out=[];
+  if(!s) return '';
+  if(which==='fore'){
+    const x=j.order&&j.order.xlnt; if(x&&x!==s) out.push(`Systemet (XLNT) anger ${x} A, på plats sitter ${s} A. Notera avvikelsen.`);
+    const p=prim(j.fore.ratio); if(p&&p<s) out.push(`Gammal trafo ${esc(j.fore.ratio)} har primärström under säkringen ${s} A. Kontrollera.`);
+  } else {
+    const p=prim(j.byte.ratio); if(p&&p<s) out.push(`Ny trafo ${esc(j.byte.ratio)} har primärström under säkringen ${s} A. Kontrollera.`);
+  }
+  return out.map(t=>`<p class="soft">${t}</p>`).join('');
+}
+function orderWarn(j){
+  const o=j.order&&j.order.newRatio; if(!o||!j.byte.ratio) return '';
+  return ratio(o)!==ratio(j.byte.ratio)?`<p class="warn">Ordern säger ${esc(o)}, du har skrivit ${esc(j.byte.ratio)}.</p>`:'<p class="note">Stämmer med ordern.</p>';
+}
 function tabDone(j,i){
   return [
     ()=>j.fore.ean && j.fore.r1 && kc(j,'fore')===K2N,
@@ -197,7 +221,7 @@ function photos(step,label){
 function regFields(ph){
   const j=job();
   return `<div class="regs">${REGS.map(r=>{
-    const fv=num(j.fore[r.k]), ev=num(j[ph][r.k]), d=ph==='efter'&&fv!=null&&ev!=null?ev-fv:null;
+    const fv=num(j.fore[r.k]), ev=num(j[ph][r.k]), d=ph==='efter'&&!j.byte.bytt&&fv!=null&&ev!=null?ev-fv:null;
     return `<label class="f"><span>${r.o} ${r.t}, ${r.u}</span><input data-k="${ph}.${r.k}" value="${esc(j[ph][r.k])}" inputmode="decimal" autocomplete="off">
     ${ph==='efter'?`<small id="d-${r.k}" class="${d!=null&&d<0?'acc':''}">${diffText(d,r.u)}</small>`:''}</label>`;
   }).join('')}</div>`;
@@ -229,13 +253,23 @@ function schema(j){
 /* ================= Vyer ================= */
 function vList(){
   const off=!navigator.onLine?'<span class="off">Offline – allt sparas i telefonen</span>':'';
+  const planned=jobs.filter(j=>j.status==='planerad').length;
   return `<h1>Trafobyten</h1>${off}
-  <div class="menu"><button data-act="borda">${ICON.calc}Bördaverktyg</button></div>
+  <div class="menu"><label class="mbtn">${ICON.imp}Importera arbetsorder<input type="file" accept=".csv,.txt,text/csv,.xlsx,.xls" data-import="1" hidden></label><button data-act="borda">${ICON.calc}Börda</button></div>
   <button class="primary" data-act="new">Starta nytt byte</button>
-  ${jobs.length?jobs.slice().sort((a,b)=>b.created.localeCompare(a.created)).map(j=>`<button class="job" data-act="open" data-id="${j.id}">
-    <div><b>${esc(j.fore.adress||j.fore.ean||'Namnlöst byte')}</b><span>${esc(j.fore.ean||'')} ${fmtDT(j.created)}</span></div>
-    <span class="tag ${j.status==='klar'?'':'on'}">${j.status}</span></button>`).join('')
-  :'<p class="empty">Inga byten än. Starta när du står vid anläggningen.</p>'}`;
+  ${jobs.length>5?`<input data-q="1" value="${esc(st.q||'')}" placeholder="Sök adress, EAN eller order" style="margin:10px 0">`:''}
+  <div id="jl">${jobList()}</div>
+  ${planned?`<button class="ghost" data-act="clearplanned">Rensa ${planned} ej påbörjade uppdrag</button>`:''}`;
+}
+function jobList(){
+  const q=(st.q||'').toLowerCase(), ord={'pågår':0,'planerad':1,'klar':2};
+  const list=jobs.filter(j=>!q||[j.fore.adress,j.fore.ean,j.order&&j.order.ao].join(' ').toLowerCase().includes(q))
+    .sort((a,b)=>(ord[a.status]-ord[b.status])||b.created.localeCompare(a.created));
+  if(!jobs.length) return '<p class="empty">Inga byten än. Importera arbetsordern eller starta ett nytt byte.</p>';
+  if(!list.length) return '<p class="empty">Inget matchar sökningen.</p>';
+  return list.map(j=>`<button class="job" data-act="open" data-id="${j.id}">
+    <div><b>${esc(j.fore.adress||j.fore.ean||'Namnlöst byte')}</b><span>${j.order&&j.order.newRatio?esc(j.order.oldRatio+' → '+j.order.newRatio)+' · ':''}${esc(j.order&&j.order.ao||fmtDT(j.created))}</span></div>
+    <span class="tag ${j.status==='pågår'?'on':''}">${j.status}</span></button>`).join('');
 }
 function vJob(){
   const j=job(), s=st.tab;
@@ -245,11 +279,24 @@ function vJob(){
   const next=s<3?`<div class="bar"><button class="primary" data-act="next">Vidare till ${TABS[s+1]}</button></div>`:'';
   return head+body+next;
 }
-function tFore(j){ return `<h2>Anläggning</h2>
+function orderCard(j){
+  const o=j.order; if(!o) return '';
+  return `<div class="sum order">
+    <p class="note">Arbetsorder ${esc(o.ao||'—')}</p>
+    ${o.newRatio?`<p class="mid">${esc(o.oldRatio||'?')} → ${esc(o.newRatio)}</p><p class="note">${esc(o.newType||'')}</p>`:''}
+    ${o.uppdrag?`<p>${esc(o.uppdrag)}</p>`:''}
+    ${o.xlnt?`<p class="note">Säkring i systemet: ${o.xlnt} A</p>`:''}
+    ${o.nyckel?`<p class="note">Nyckel: ${esc(o.nyckel)}</p>`:''}
+    ${o.anteckning?`<p class="note">${esc(o.anteckning)}</p>`:''}</div>`;
+}
+function tFore(j){ return `${orderCard(j)}<h2>Anläggning</h2>
   ${f('EAN-nummer','fore.ean',{im:'numeric',ph:'735999…'})}
   ${f('Adress','fore.adress')}
   ${sel('Nätsystem','fore.nat',['TN-C 4-ledare','TN-S 5-ledare'])}
   <div class="row2">${f('Mätarnummer','fore.matarnr',{im:'numeric'})}${f('Omsättning gammal trafo','fore.ratio',{ph:'200/5'})}</div>
+  <div class="row2">${f('Plint','fore.plint',{ph:'A1'})}${f('Placering','fore.placering',{ph:'Elrum'})}</div>
+  <label class="f"><span>Mätarsäkring på plats, A</span><select data-k="fore.sakring">${SAKR.map(v=>`<option value="${v}" ${v===(j.fore.sakring||'')?'selected':''}>${v?v+' A':'Välj'}</option>`).join('')}</select></label>
+  <div id="sw-fore">${sakWarn(j,'fore')}</div>
   <h2>Mätarställning före</h2>
   <p class="note">Primärvärden. Fota varje register när det visas på displayen.</p><br>
   ${regFields('fore')}
@@ -271,13 +318,18 @@ function tByte(j){
   <div class="stamp"><div><div class="note">Slut</div><div class="v">${fmtT(b)}</div></div><button data-act="stamp" data-p="byte.slut">${b?'Ändra till nu':'Registrera nu'}</button></div>
   ${min!=null?`<div class="big">${min}</div><p class="note">minuter utan mätning</p>`:''}
   <h2>Ny trafo</h2>
-  ${f('Omsättning ny trafo','byte.ratio',{ph:'300/5'})}
-  <div id="rw">${ratioWarn(j)}</div>
+  ${f('Omsättning ny trafo','byte.ratio',{ph:j.order&&j.order.newRatio||'300/5'})}
+  ${j.order&&j.order.newRatio&&!j.byte.ratio?`<button class="secondary" data-act="useorder">Monterat enligt order: ${esc(j.order.newRatio)}</button>`:''}
+  <div id="rw">${orderWarn(j)}${ratioWarn(j)}${sakWarn(j,'byte')}</div>
   <div class="row2">${f('Börda min VA','byte.bmin',{im:'decimal',ph:'0,1'})}${f('Börda max VA','byte.bmax',{im:'decimal',ph:'1,5'})}</div>
-  <button class="secondary" data-act="borda-job">${bo?`Börda sparad: ${dec(bo.tot,2)} VA · ${bo.ok?'OK':'Ej OK'} · öppna`:'Kontrollera bördan'}</button><br>
+  <h2>Mätare</h2>
+  <button class="check ${j.byte.bytt?'on':''}" data-act="bytt"><span class="box"></span><span>Mätaren byttes också</span></button>
+  ${j.byte.bytt?`<br><div class="row2">${f('Nytt mätarnummer','byte.nyttnr',{im:'numeric'})}${f('Ny terminalnr','byte.terminal')}</div>`:''}
+  <br><button class="secondary" data-act="borda-job">${bo?`Börda sparad: ${dec(bo.tot,2)} VA · ${bo.ok?'OK':'Ej OK'} · öppna`:'Kontrollera bördan'}</button><br>
   ${photos('byte','Fota ny trafo och märkskylt')}`;
 }
 function ratioWarn(j){
+  if(ratioChanged(j)&&j.order&&ratio(j.order.newRatio)===ratio(j.byte.ratio)) return `<p class="soft">Omsättningen ändras enligt order. Kontrollera att mätaren programmeras om till ${esc(j.byte.ratio)}.</p>`;
   return ratioChanged(j)?`<p class="warn">Omsättningen ändras från ${esc(j.fore.ratio)} till ${esc(j.byte.ratio)}. Mätaren visar primärvärden och måste programmeras om, annars blir mätningen fel från nu. Meddela nätbolaget.</p>`:'';
 }
 function tEfter(j){ return `<h2>Kontroll efter byte</h2>
@@ -285,7 +337,7 @@ function tEfter(j){ return `<h2>Kontroll efter byte</h2>
   <p class="note" id="kc-efter">${kc(j,'efter',true)} av ${K2N} OK</p>
   ${checklist(j,'efter')}
   ${schema(j)}
-  <h2>Mätarställning efter</h2>
+  <h2>${j.byte.bytt?'Startställning ny mätare':'Mätarställning efter'}</h2>
   ${regFields('efter')}
   ${photos('register-efter','Fota register')}
   ${f('Nya plombnummer','efter.plomb')}
@@ -302,7 +354,10 @@ function tKlart(j){
     ${ratioChanged(j)?'<p class="acc">Omsättning ändrad – mätaren ska programmeras om</p>':''}
     <p class="note">${photoMeta.length} foton</p>
   </div>
-  <button class="primary" data-act="share">Skicka protokoll till mig</button>
+  <button class="primary" data-act="copyrow">Kopiera rad till Excel</button>
+  <p class="note">Klistra in i cellen <i>gammal mätarnummer</i> på rätt rad i arket. Fyller kolumnerna fram till startställning R-. Datum för utfört fyller du i själv.</p>
+  <textarea id="rowbox" readonly style="display:none;margin-top:8px;font-size:13px"></textarea>
+  <button class="secondary" data-act="share">Skicka protokoll till mig</button>
   <p class="note">Ett protokoll med alla foton. Välj Mail och skicka till dig själv, så finns det kvar även om telefonen försvinner.</p>
   <button class="secondary" data-act="finish">${j.status==='klar'?'Öppna bytet igen':'Markera som klart'}</button>
   <button class="danger" data-act="delete">Radera bytet</button>`;
@@ -338,6 +393,68 @@ function bCalc(){ const v=VAM[bt.area], L=num(bt.langd), pl=num(bt.pl)??0, mn=nu
 function verdict(){ const c=bCalc(); if(!c) return '';
   return c.ok?`<p>OK med ${bt.area} mm²: ${dec(c.tot,2)} VA.</p>`:c.over?`<p class="warn">Ej OK: ${dec(c.tot,2)} VA är över trafons max. Grövre kabel eller flytta mätaren närmare.</p>`:`<p class="warn">Ej OK: ${dec(c.tot,2)} VA är under trafons min.</p>`; }
 
+/* ================= Excel ================= */
+function stamp(iso){ if(!iso) return ''; const d=new Date(iso), p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+function excelRow(j){
+  const u=(v,unit)=>v?`${String(v).trim()} ${unit}`:'';
+  const raw=j.order&&j.order.matarnrRaw;
+  const mn = raw&&stripNr(raw)===stripNr(j.fore.matarnr) ? raw : (j.fore.matarnr?'*'+j.fore.matarnr:'');
+  const b=j.byte.bytt, e=j.efter;
+  const cells=[mn, j.fore.plint||'', j.fore.placering||'', stamp(j.byte.start),
+    u(j.fore.r1,'kWh'), u(j.fore.r3,'kvarh'), u(j.fore.r2,'kWh'), u(j.fore.r4,'kvarh'),
+    j.fore.sakring?j.fore.sakring+' A':'',
+    b&&j.byte.nyttnr?'*'+j.byte.nyttnr:'', b?j.byte.terminal||'':'',
+    b?u(e.r1,'kWh'):'', b?u(e.r3,'kvarh'):'', b?u(e.r2,'kWh'):'', b?u(e.r4,'kvarh'):''];
+  return cells.map(x=>String(x).replace(/[\t\r\n]+/g,' ')).join('\t');
+}
+function parseCSV(text){
+  const first=text.split(/\r?\n/)[0], d=[';','\t',','].sort((a,b)=>first.split(b).length-first.split(a).length)[0];
+  const rows=[]; let row=[], fld='', q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){ fld+='"'; i++; } else q=false; } else fld+=c; }
+    else if(c==='"') q=true;
+    else if(c===d){ row.push(fld); fld=''; }
+    else if(c==='\n'||c==='\r'){ if(c==='\r'&&text[i+1]==='\n') i++; row.push(fld); rows.push(row); row=[]; fld=''; }
+    else fld+=c;
+  }
+  if(fld||row.length){ row.push(fld); rows.push(row); }
+  return rows;
+}
+async function readText(file){
+  const buf=await file.arrayBuffer();
+  try{ return new TextDecoder('utf-8',{fatal:true}).decode(buf).replace(/^\uFEFF/,''); }
+  catch(e){ return new TextDecoder('windows-1252').decode(buf); }
+}
+async function importOrders(file){
+  if(/\.xlsx?$/i.test(file.name)){ alert('Spara arket som CSV först: Arkiv → Spara som → CSV UTF-8. Välj sedan den filen.'); return; }
+  const rows=parseCSV(await readText(file));
+  const h=(rows[0]||[]).map(x=>x.trim().toLowerCase());
+  const col=fn=>h.findIndex(fn);
+  const C={ ao:col(x=>x==='arbetsorder'), ean:col(x=>x==='ean'), adr:col(x=>x==='adress'), xlnt:col(x=>x.startsWith('xlnt')),
+    upp:col(x=>x==='kommentar ökab'), nyc:col(x=>x==='nyckel'), ant:col(x=>x==='kommentar ökab/liro'),
+    mnr:col(x=>x.startsWith('gammal mätarnummer')), pl:col(x=>x.startsWith('plint')), plc:col(x=>x.startsWith('placering')),
+    utf:col(x=>x.startsWith('utfört')), stat:col(x=>x==='status'), stopA:col(x=>x.startsWith('stoppställning a+')) };
+  if(C.ean<0){ alert('Hittar ingen kolumn som heter EAN. Är det rätt fil?'); return; }
+  const v=(r,i)=>i<0?'':String(r[i]??'').trim();
+  let added=0, done=0, dup=0;
+  for(const r of rows.slice(1)){
+    const ean=stripNr(v(r,C.ean)); if(!ean) continue;
+    if(v(r,C.utf)||v(r,C.stopA)||/^ok$/i.test(v(r,C.stat))){ done++; continue; }
+    const ao=v(r,C.ao);
+    if(jobs.some(x=>(ao&&x.order&&x.order.ao===ao)||(!ao&&x.fore.ean===ean))){ dup++; continue; }
+    const upp=v(r,C.upp), m=upp.match(/(\d+)\s*\/\s*5[^>]*?->\s*([A-Za-z][A-Za-z0-9]*)?\s*(\d+)\s*\/\s*5/);
+    const xm=v(r,C.xlnt).match(/(\d+)\s*a/i), raw=v(r,C.mnr);
+    const j={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), created:new Date().toISOString(), status:'planerad',
+      order:{ao, uppdrag:upp, oldRatio:m?m[1]+'/5':'', newType:m&&m[2]||'', newRatio:m?m[3]+'/5':'', xlnt:xm?+xm[1]:null, nyckel:v(r,C.nyc), anteckning:v(r,C.ant), matarnrRaw:raw},
+      fore:{nat:'TN-C 4-ledare', ean, adress:v(r,C.adr), matarnr:stripNr(raw), ratio:m?m[1]+'/5':'', plint:v(r,C.pl), placering:v(r,C.plc)},
+      byte:{safe:{}}, efter:{}, kontroll:{fore:{},efter:{},note:{fore:{},efter:{}}}, borda:{}};
+    jobs.push(j); await dbPut('jobs',j); added++;
+  }
+  render();
+  alert(`${added} nya uppdrag importerade.\n${done} redan utförda hoppades över.\n${dup} fanns redan i appen eller förekom två gånger i filen.`);
+}
+
 /* ================= Protokoll ================= */
 function blobToData(b){ return new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(b); }); }
 async function protocolHtml(j){
@@ -359,19 +476,23 @@ async function protocolHtml(j){
 <p>Fel kvar efter byte: ${fE.length?`<span class="w">${fE.map(x=>esc(x.r.t)+' ('+x.f.join(', ')+')').join('; ')}</span>`:'Inga'}</p>
 ${ratioChanged(j)?`<p class="w">Omsättning ändrad ${esc(j.fore.ratio)} → ${esc(j.byte.ratio)}. Mätaren ska programmeras om.</p>`:''}
 <h2>Anläggning</h2>
-<table><tr><td>EAN</td><td>${esc(j.fore.ean||'—')}</td></tr><tr><td>Adress</td><td>${esc(j.fore.adress||'—')}</td></tr><tr><td>Nätsystem</td><td>${esc(j.fore.nat)}</td></tr><tr><td>Mätarnummer</td><td>${esc(j.fore.matarnr||'—')}</td></tr></table>
-<h2>Mätarställning (primärvärden)</h2>
+<table>${j.order?`<tr><td>Arbetsorder</td><td>${esc(j.order.ao||'—')}</td></tr><tr><td>Beställt</td><td>${esc(j.order.uppdrag||'—')}</td></tr>`:''}<tr><td>EAN</td><td>${esc(j.fore.ean||'—')}</td></tr>
+<tr><td>Plint / placering</td><td>${esc(j.fore.plint||'—')} / ${esc(j.fore.placering||'—')}</td></tr>
+<tr><td>Mätarsäkring</td><td>${j.fore.sakring?j.fore.sakring+' A':'—'}${j.order&&j.order.xlnt?` (system: ${j.order.xlnt} A)`:''}</td></tr><tr><td>Adress</td><td>${esc(j.fore.adress||'—')}</td></tr><tr><td>Nätsystem</td><td>${esc(j.fore.nat)}</td></tr><tr><td>Mätarnummer</td><td>${esc(j.fore.matarnr||'—')}</td></tr></table>
+<h2>${j.byte.bytt?'Mätarställning (efter = ny mätare)':'Mätarställning (primärvärden)'}</h2>
 <table><tr><th>Register</th><th>Före</th><th>Efter</th><th>Diff</th></tr>${regs}</table>
 <h2>Byte</h2>
 <table><tr><td>Säkerhet före arbete</td><td>${SAFE.map((s,i)=>`${j.byte.safe[i]?'✓':'✕'} ${s}`).join('<br>')}</td></tr>
 <tr><td>Avbrott</td><td>${fmtT(j.byte.start)}–${fmtT(j.byte.slut)} (${min} min)</td></tr>
-<tr><td>Omsättning</td><td>${esc(j.fore.ratio||'—')} → ${esc(j.byte.ratio||'—')}</td></tr>
+<tr><td>Omsättning</td><td>${esc(j.fore.ratio||'—')} → ${esc(j.byte.ratio||'—')}${j.order&&j.order.newRatio?` (order: ${esc(j.order.newRatio)})`:''}</td></tr>
+<tr><td>Mätare bytt</td><td>${j.byte.bytt?`Ja. Nytt nr ${esc(j.byte.nyttnr||'—')}, terminal ${esc(j.byte.terminal||'—')}`:'Nej'}</td></tr>
 <tr><td>Ny trafo börda</td><td>${esc(j.byte.bmin||'—')}–${esc(j.byte.bmax||'—')} VA</td></tr>
 <tr><td>Brutna plomber</td><td>${esc(j.fore.plomb||'—')}</td></tr><tr><td>Nya plomber</td><td>${esc(j.efter.plomb||'—')}</td></tr></table>
 ${bo?`<h2>Börda i strömkrets</h2><p>${dec(num(bo.langd),1)} m × ${bo.area} mm² + ${esc(bo.pl)} VA = <b>${dec(bo.tot,2)} VA</b> mot trafons ${esc(bo.min||'—')}–${esc(bo.max)} VA: <b>${bo.ok?'OK':'<span class="w">Ej OK</span>'}</b></p>`:''}
 <h2>Checklista mätkrets kategori 2, före och efter</h2>
 <table><tr><th>Kontroll</th><th>Före</th><th>Efter</th></tr>${rows}</table>
 ${j.efter.kommentar?`<h2>Kommentar</h2><p>${esc(j.efter.kommentar)}</p>`:''}
+<h2>Rad till Excel-arket</h2><p style="font-size:13px;color:#666">Från kolumnen gammal mätarnummer till startställning R-. Tabbseparerad.</p><pre style="white-space:pre;overflow-x:auto;background:#f4f4f4;padding:8px;font-size:12px">${esc(excelRow(j))}</pre>
 <h2>Foton (${imgs.length})</h2>
 ${imgs.map(i=>`<figure><img src="${i.src}" alt=""><figcaption>${esc(i.step)} · ${fmtDT(i.t)}</figcaption></figure>`).join('')}
 </body></html>`;
@@ -433,16 +554,18 @@ function openBorda(fromJob){
 
 $app.addEventListener('input',e=>{
   const t=e.target;
+  if(t.dataset.q){ st.q=t.value; document.getElementById('jl').innerHTML=jobList(); return; }
   if(t.dataset.b){ bt[t.dataset.b]=t.value; const o=document.getElementById('btout'); const tmp=document.createElement('div'); tmp.innerHTML=vBorda(); o.innerHTML=tmp.querySelector('#btout').innerHTML; return; }
   const k=t.dataset.k; if(!k) return;
   const j=job(); set(j,k,t.value); save(j);
-  if(k==='byte.ratio'||k==='fore.ratio'){ const w=document.getElementById('rw'); if(w) w.innerHTML=ratioWarn(j); }
+  if(k==='byte.ratio'||k==='fore.ratio'){ const w=document.getElementById('rw'); if(w) w.innerHTML=orderWarn(j)+ratioWarn(j)+sakWarn(j,'byte'); const w2=document.getElementById('sw-fore'); if(w2) w2.innerHTML=sakWarn(j,'fore'); }
   if(k.startsWith('efter.r')){ const r=REGS.find(x=>'efter.'+x.k===k), el=document.getElementById('d-'+r.k); const fv=num(j.fore[r.k]), ev=num(t.value), d=fv!=null&&ev!=null?ev-fv:null; el.className=d!=null&&d<0?'acc':''; el.textContent=diffText(d,r.u); }
 });
 $app.addEventListener('change',async e=>{
   const t=e.target;
   if(t.tagName==='SELECT'&&t.dataset.k){ const j=job(); set(j,t.dataset.k,t.value); save(j); render(true); return; }
   if(t.tagName==='SELECT'&&t.dataset.b){ bt[t.dataset.b]=t.value; render(true); return; }
+  if(t.dataset.import&&t.files[0]){ const fl=t.files[0]; t.value=''; try{ await importOrders(fl); }catch(err){ alert('Kunde inte läsa filen. Spara arket som CSV UTF-8 och försök igen.'); } return; }
   const step=t.dataset.photo; if(!step||!t.files[0]) return;
   const j=job();
   try{
@@ -471,6 +594,13 @@ $app.addEventListener('click',async e=>{
   if(a==='borda-save'){ const c=bCalc(); if(!c){ flash('Fyll i kabellängd och trafons max-börda'); return; }
     j.borda.saved={...bt,tot:c.tot,ok:c.ok}; if(bt.min) j.byte.bmin=bt.min; if(bt.max) j.byte.bmax=bt.max; save(j); st={view:'job',id:j.id,tab:1}; flash('Börda sparad i protokollet'); return render(); }
   if(a==='share') return shareProtocol(j);
+  if(a==='useorder'){ j.byte.ratio=j.order.newRatio; save(j); return render(true); }
+  if(a==='bytt'){ j.byte.bytt=!j.byte.bytt; save(j); return render(true); }
+  if(a==='copyrow'){ const row=excelRow(j), box=document.getElementById('rowbox');
+    try{ await navigator.clipboard.writeText(row); flash('Raden är kopierad'); }
+    catch(err){ box.style.display='block'; box.value=row; box.focus(); box.select(); flash('Markera och kopiera texten'); } return; }
+  if(a==='clearplanned'){ const n=jobs.filter(x=>x.status==='planerad').length; if(!confirm(`Ta bort ${n} uppdrag som inte är påbörjade? Påbörjade och klara byten påverkas inte.`)) return;
+    for(const x of jobs.filter(x=>x.status==='planerad')) await dbDel('jobs',x.id); jobs=jobs.filter(x=>x.status!=='planerad'); return render(); }
   if(a==='finish'){ j.status=j.status==='klar'?'pågår':'klar'; save(j); return render(true); }
   if(a==='delete'){ if(!confirm('Radera bytet och alla foton? Går inte att ångra. Har du skickat protokollet?')) return;
     for(const p of await photosOf(j.id)) await dbDel('photos',p.id); await dbDel('jobs',j.id);

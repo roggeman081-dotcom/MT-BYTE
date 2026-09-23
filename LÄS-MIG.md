@@ -31,3 +31,16 @@ Dina sparade byten påverkas inte av uppdateringar.
 
 ## Alternativ: liroelteknik.se
 Kan också läggas i en mapp, t.ex. `liroelteknik.se/mt/`, om ditt webbhotell har https.
+
+## Importera arbetsorder
+1. Öppna arket i Excel på datorn. Arkiv → Spara som → **CSV UTF-8 (kommaavgränsad)**.
+2. Mejla CSV-filen till dig själv. Öppna mejlet på iPhone, tryck på bilagan → Dela → **Spara i Filer**.
+3. I appen: **Importera arbetsorder** → välj filen i Filer.
+4. Utförda uppdrag (utfört-datum, stoppställning eller status OK) hoppas över. Uppdrag som redan finns i appen skrivs aldrig över.
+
+Ekonomi, NDI och kolumnen "kommentar LiRo" läses aldrig in.
+Ladda aldrig upp arket eller CSV-filen till GitHub – repot är publikt.
+
+## Rad tillbaka till Excel
+Under Klart: **Kopiera rad till Excel**. Klistra in i cellen *gammal mätarnummer* på rätt rad.
+Raden finns också i protokollet du mejlar till dig själv, så du kan kopiera den från datorn.
