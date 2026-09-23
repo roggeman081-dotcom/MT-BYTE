@@ -422,11 +422,15 @@ function verdict(){ const c=bCalc(); if(!c) return '';
 
 /* ================= Excel ================= */
 function stamp(iso){ if(!iso) return ''; const d=new Date(iso), p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
-function copyText(t){
+/* Kopierar både som tabell (HTML) och text. Excel läser tabellen cell för cell, så inget kan förskjutas. */
+function copyText(t,cells){
+  const html=cells?'<table><tr>'+cells.map(c=>'<td style="mso-number-format:\'\\@\'">'+esc(c)+'</td>').join('')+'</tr></table>':null;
+  const onCopy=e=>{ e.clipboardData.setData('text/plain',t); if(html) e.clipboardData.setData('text/html',html); e.preventDefault(); };
+  document.addEventListener('copy',onCopy);
   const ta=document.createElement('textarea'); ta.value=t; ta.setAttribute('readonly','');
   ta.style.cssText='position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;font-size:16px';
   document.body.appendChild(ta); ta.focus(); ta.setSelectionRange(0,t.length);
-  let ok=false; try{ ok=document.execCommand('copy'); }catch(e){} ta.remove(); return ok;
+  let ok=false; try{ ok=document.execCommand('copy'); }catch(e){} ta.remove(); document.removeEventListener('copy',onCopy); return ok;
 }
 const ROWCOLS=['Gammalt mätarnr','Plint','Placering','Start avbrott','1.8.0 före','3.8.0 före','2.8.0 före','4.8.0 före','Säkring','Nytt mätarnr','Terminal','1.8.0 ny','3.8.0 ny','2.8.0 ny','4.8.0 ny'];
 function rowPreview(c){
@@ -496,7 +500,11 @@ async function readXlsx(file){
   const rel={}; const rx=await unzipText(z,'xl/_rels/workbook.xml.rels');
   if(rx) for(const r of P(rx).getElementsByTagName('Relationship')){ const t=r.getAttribute('Target'); rel[r.getAttribute('Id')]=t.startsWith('/')?t.slice(1):'xl/'+t; }
   const wb=P(await unzipText(z,'xl/workbook.xml'));
-  const paths=[...wb.getElementsByTagName('sheet')].map(s=>rel[s.getAttribute('r:id')]).filter(Boolean);
+  let paths=[...wb.getElementsByTagName('sheet')].map(s=>rel[s.getAttribute('r:id')]);
+  /* Läs först bladet som var öppet när filen sparades, sedan resten */
+  const wv=wb.getElementsByTagName('workbookView')[0], act=wv?+(wv.getAttribute('activeTab')||0):0;
+  if(paths[act]) paths=[paths[act],...paths.filter((_,i)=>i!==act)];
+  paths=paths.filter(Boolean);
   const colIdx=ref=>{ let n=0; for(const ch of ref.replace(/\d+/g,'')) n=n*26+ch.charCodeAt(0)-64; return n-1; };
   const sheets=[];
   for(const path of paths){
@@ -696,7 +704,7 @@ $app.addEventListener('click',async e=>{
   if(a==='share') return shareProtocol(j);
   if(a==='useorder'){ j.byte.ratio=j.order.newRatio; save(j); return render(true); }
   if(a==='bytt'){ j.byte.bytt=!j.byte.bytt; save(j); return render(true); }
-  if(a==='copyrow'){ const row=excelRow(j), ok=copyText(row), filled=excelCells(j).filter(Boolean).length;
+  if(a==='copyrow'){ const row=excelRow(j), ok=copyText(row,excelCells(j)), filled=excelCells(j).filter(Boolean).length;
     document.getElementById('rowprev').innerHTML=rowPreview(excelCells(j));
     if(ok){ flash(`Kopierat, ${filled} av 15 celler`); return; }
     try{ await navigator.clipboard.writeText(row); flash(`Kopierat, ${filled} av 15 celler`); }
