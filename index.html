@@ -434,7 +434,8 @@ function copyText(t,cells){
 }
 const ROWCOLS=['Gammalt mätarnr','Plint','Placering','Start avbrott','1.8.0 före','3.8.0 före','2.8.0 före','4.8.0 före','Säkring','Nytt mätarnr','Terminal','1.8.0 ny','3.8.0 ny','2.8.0 ny','4.8.0 ny'];
 function rowPreview(c){
-  return `<div class="sum"><p class="note">Det här kopierades. Klistra in i cellen <i>gammal mätarnummer</i>.</p><table>${ROWCOLS.map((n,i)=>`<tr><td class="note">${n}</td><td>${esc(c[i]||'—')}</td></tr>`).join('')}</table>
+  const miss=ROWCOLS.filter((n,i)=>c[i]==='-'&&!/^(Nytt mätarnr|Terminal)$/.test(n));
+  return `<div class="sum">${miss.length?`<p class="warn">Tomt i raden: ${miss.join(', ')}. Fyll i under Före, Byte eller Efter och kopiera igen.</p>`:''}<p class="note">Det här kopierades. Klistra in i cellen <i>gammal mätarnummer</i>.</p><table>${ROWCOLS.map((n,i)=>`<tr><td class="note">${n}</td><td${miss.includes(n)?' class="warn"':c[i]==='-'?' class="note"':''}>${esc(c[i]==='-'?'tomt':c[i])}</td></tr>`).join('')}</table>
   ${navigator.share?'<button class="secondary" data-act="sharerow">Dela raden istället</button>':''}</div>`;
 }
 function excelCells(j){
@@ -446,7 +447,7 @@ function excelCells(j){
     u(j.fore.r1,'kWh'), u(j.fore.r3,'kvarh'), u(j.fore.r2,'kWh'), u(j.fore.r4,'kvarh'),
     j.fore.sakring?j.fore.sakring+' A':'',
     b&&j.byte.nyttnr?'*'+j.byte.nyttnr:'', b?j.byte.terminal||'':'',
-    b?u(e.r1,'kWh'):'', b?u(e.r3,'kvarh'):'', b?u(e.r2,'kWh'):'', b?u(e.r4,'kvarh'):''];
+    u(e.r1,'kWh'), u(e.r3,'kvarh'), u(e.r2,'kWh'), u(e.r4,'kvarh')];
   /* Tomma celler blir "-", som i arket. Tomma celler kan annars försvinna vid inklistring på iPhone så att allt hamnar en kolumn fel. */
   return cells.map(x=>String(x).replace(/[\t\r\n]+/g,' ').trim()||'-');
 }
@@ -601,7 +602,11 @@ ${bo?`<h2>Börda i strömkrets</h2><p>${dec(num(bo.langd),1)} m × ${bo.area} mm
 <h2>Checklista mätkrets kategori 2, före och efter</h2>
 <table><tr><th>Kontroll</th><th>Före</th><th>Efter</th></tr>${rows}</table>
 ${j.efter.kommentar?`<h2>Kommentar</h2><p>${esc(j.efter.kommentar)}</p>`:''}
-<h2>Rad till Excel-arket</h2><p style="font-size:13px;color:#666">Från kolumnen gammal mätarnummer till startställning R-. Tabbseparerad.</p><pre style="white-space:pre;overflow-x:auto;background:#f4f4f4;padding:8px;font-size:12px">${esc(excelRow(j))}</pre>
+<h2>Rad till Excel-arket</h2><p style="font-size:13px;color:#666">Markera hela den grå raden (inte rubrikerna), kopiera och klistra in i kolumn R, gammal mätarnummer.</p>
+<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:12px;white-space:nowrap">
+<tr>${ROWCOLS.map(n=>`<th style="border:1px solid #ccc;padding:4px 6px;text-align:left;color:#666;font-weight:400">${n}</th>`).join('')}</tr>
+<tr style="background:#f4f4f4">${excelCells(j).map(c=>`<td style="border:1px solid #ccc;padding:4px 6px;mso-number-format:'\\@'">${esc(c)}</td>`).join('')}</tr>
+</table></div>
 <h2>Foton (${imgs.length})</h2>
 ${imgs.map(i=>`<figure><img src="${i.src}" alt=""><figcaption>${esc(i.step)} · ${fmtDT(i.t)}</figcaption></figure>`).join('')}
 </body></html>`;
