@@ -223,7 +223,7 @@ function orderWarn(j){
 }
 function tabDone(j,i){
   return [
-    ()=>{ const fb=j.forberedelse; return !!(fb&&(fb.kontakt||fb.telefon||fb.viktigt||fb.notering)); },
+    ()=>{ const fb=j.forberedelse; return !!(fb&&(fb.kontakt||fb.telefon||fb.rot||fb.viktigt||fb.notering)); },
     ()=>j.fore.ean && j.fore.r1 && kc(j,'fore')===K2N,
     ()=>j.byte.slut && j.byte.ratio && SAFE.every((_,x)=>j.byte.safe[x]),
     ()=>j.efter.r1 && kc(j,'efter',true)===K2N,
@@ -322,6 +322,7 @@ function tForberedelse(j){
   return `${orderCard(j)}<h2>Kontakt</h2>
   ${f('Kontaktperson','forberedelse.kontakt',{ph:'Namn'})}
   ${f('Telefonnummer','forberedelse.telefon',{im:'tel',ph:'070-...'})}
+  <button class="check ${fb.rot?'on':''}" data-act="rot"><span class="box"></span><span>ROT-arbete</span></button>
   <h2>Viktig information</h2>
   <label class="f"><span>T.ex. koder, hund, säkerhetsrisker, parkering</span><textarea data-k="forberedelse.viktigt">${esc(fb.viktigt)}</textarea></label>
   <h2>Anteckningar</h2>
@@ -598,7 +599,7 @@ async function protocolHtml(j){
 <p>Fel kvar efter byte: ${fE.length?`<span class="w">${fE.map(x=>esc(x.r.t)+(x.f.length?' ('+x.f.join(', ')+')':'')).join('; ')}</span>`:'Inga'}</p>
 ${ratioChanged(j)?`<p class="w">Omsättning ändrad ${esc(j.fore.ratio)} → ${esc(j.byte.ratio)}. Mätaren ska programmeras om.</p>`:''}
 ${(()=>{ const fb=j.forberedelse; return fb&&(fb.kontakt||fb.telefon||fb.viktigt||fb.notering)?`<h2>Förberedelse</h2><table>
-${fb.kontakt?`<tr><td>Kontaktperson</td><td>${esc(fb.kontakt)}</td></tr>`:''}${fb.telefon?`<tr><td>Telefon</td><td>${esc(fb.telefon)}</td></tr>`:''}${fb.viktigt?`<tr><td>Viktig information</td><td>${esc(fb.viktigt)}</td></tr>`:''}${fb.notering?`<tr><td>Anteckningar</td><td>${esc(fb.notering)}</td></tr>`:''}</table>`:''; })()}
+${fb.kontakt?`<tr><td>Kontaktperson</td><td>${esc(fb.kontakt)}</td></tr>`:''}${fb.telefon?`<tr><td>Telefon</td><td>${esc(fb.telefon)}</td></tr>`:''}${fb.rot?`<tr><td>ROT-arbete</td><td>Ja</td></tr>`:''}${fb.viktigt?`<tr><td>Viktig information</td><td>${esc(fb.viktigt)}</td></tr>`:''}${fb.notering?`<tr><td>Anteckningar</td><td>${esc(fb.notering)}</td></tr>`:''}</table>`:''; })()}
 <h2>Anläggning</h2>
 <table>${j.order?`<tr><td>Arbetsorder</td><td>${esc(j.order.ao||'—')}</td></tr><tr><td>Beställt</td><td>${esc(j.order.uppdrag||'—')}</td></tr>`:''}<tr><td>EAN</td><td>${esc(j.fore.ean||'—')}</td></tr>
 <tr><td>Plint / placering</td><td>${esc(j.fore.plint||'—')} / ${esc(j.fore.placering||'—')}</td></tr>
@@ -713,6 +714,7 @@ $app.addEventListener('click',async e=>{
   if(a==='next'){ st.tab=Math.min(4,st.tab+1); return render(); }
   if(a==='stamp'){ set(j,b.dataset.p,new Date().toISOString()); save(j); return render(true); }
   if(a==='safe'){ j.byte.safe[b.dataset.i]=!j.byte.safe[b.dataset.i]; save(j); return render(true); }
+  if(a==='rot'){ j.forberedelse=j.forberedelse||{}; j.forberedelse.rot=!j.forberedelse.rot; save(j); return render(true); }
   if(a==='k2'){ const ph=b.dataset.ph, r=K2.find(x=>x.id===b.dataset.k), kk=j.kontroll[ph]=j.kontroll[ph]||{}, cur=kv(kk,r), nx=cur==='ok'?'fel':cur==='fel'?null:'ok';
     r.c.forEach(c=>delete kk[r.id+'.'+c]); if(nx) kk[r.id]=nx; else delete kk[r.id]; save(j); return render(true); }
   if(a==='delphoto'){ if(!confirm('Ta bort fotot?')) return; await dbDel('photos',b.dataset.id); URL.revokeObjectURL(photoUrls[b.dataset.id]); delete photoUrls[b.dataset.id]; photoMeta=photoMeta.filter(p=>p.id!==b.dataset.id); return render(true); }
