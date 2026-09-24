@@ -39,8 +39,8 @@ button:active{transform:scale(.98)}
 .top .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:17px}
 .top button{width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.45);display:grid;place-items:center;flex:0 0 36px}
 .off{font-size:12px;font-weight:700;color:var(--ink);background:var(--soft);border-radius:500px;padding:3px 10px;display:inline-block}
-.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0 0}
-.tabs button{padding:9px 4px;background:var(--surface);color:var(--text);font-size:14px;font-weight:600;border-radius:500px}
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:12px 0 0}
+.tabs button{padding:9px 2px;background:var(--surface);color:var(--text);font-size:12px;font-weight:600;border-radius:500px}
 .tabs button.cur{background:var(--accent);color:var(--ink);font-weight:700}
 .tabs button.done:not(.cur)::after{content:" ✓";color:var(--accent)}
 .hero{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:18px 0 6px}
@@ -122,7 +122,7 @@ tr.sel td{color:var(--accent);font-weight:600}
 <main id="app"><p class="empty">Startar…</p></main>
 <script>
 /* ================= Data från Öresundskrafts blad ================= */
-const TABS = ['Före','Byte','Efter','Klart'];
+const TABS = ['Förbered','Före','Byte','Efter','Klart'];
 const FAS = ['L1','L2','L3'], PLATS = ['Mätfack','Kopplingsplint','Mätaren'];
 const K2 = [
   {id:'p1', t:'Strömtransformatorer P1 → P2, P1 mot nät', c:FAS},
@@ -223,6 +223,7 @@ function orderWarn(j){
 }
 function tabDone(j,i){
   return [
+    ()=>{ const fb=j.forberedelse; return !!(fb&&(fb.kontakt||fb.telefon||fb.viktigt||fb.notering)); },
     ()=>j.fore.ean && j.fore.r1 && kc(j,'fore')===K2N,
     ()=>j.byte.slut && j.byte.ratio && SAFE.every((_,x)=>j.byte.safe[x]),
     ()=>j.efter.r1 && kc(j,'efter',true)===K2N,
@@ -302,8 +303,8 @@ function vJob(){
   const j=job(), s=st.tab;
   const head=`<div class="top"><button data-act="home" aria-label="Till listan">${ICON.back}</button><div class="t">${esc(j.fore.adress||j.fore.ean||'Nytt byte')}</div>${!navigator.onLine?'<span class="off">Offline</span>':''}<button data-act="delete" aria-label="Radera bytet">${ICON.trash}</button></div>
   <div class="tabs">${TABS.map((n,i)=>`<button data-act="tab" data-s="${i}" class="${i===s?'cur':''} ${tabDone(j,i)?'done':''}">${n}</button>`).join('')}</div>`;
-  const body=[tFore,tByte,tEfter,tKlart][s](j);
-  const next=s<3?`<div class="bar"><button class="primary" data-act="next">Vidare till ${TABS[s+1]}</button></div>`:'';
+  const body=[tForberedelse,tFore,tByte,tEfter,tKlart][s](j);
+  const next=s<4?`<div class="bar"><button class="primary" data-act="next">Vidare till ${TABS[s+1]}</button></div>`:'';
   return head+body+next;
 }
 function orderCard(j){
@@ -315,6 +316,17 @@ function orderCard(j){
     ${o.xlnt?`<p class="note">Säkring i systemet: ${o.xlnt} A</p>`:''}
     ${o.nyckel?`<p class="note">Nyckel: ${esc(o.nyckel)}</p>`:''}
     ${o.anteckning?`<p class="note">${esc(o.anteckning)}</p>`:''}</div>`;
+}
+function tForberedelse(j){
+  const fb=j.forberedelse||{};
+  return `${orderCard(j)}<h2>Kontakt</h2>
+  ${f('Kontaktperson','forberedelse.kontakt',{ph:'Namn'})}
+  ${f('Telefonnummer','forberedelse.telefon',{im:'tel',ph:'070-...'})}
+  <h2>Viktig information</h2>
+  <label class="f"><span>T.ex. koder, hund, säkerhetsrisker, parkering</span><textarea data-k="forberedelse.viktigt">${esc(fb.viktigt)}</textarea></label>
+  <h2>Anteckningar</h2>
+  <label class="f"><span>Övrigt inför besöket</span><textarea data-k="forberedelse.notering">${esc(fb.notering)}</textarea></label>
+  ${photos('forberedelse','Fota plats eller kontaktuppgifter')}`;
 }
 function tFore(j){ return `${orderCard(j)}<h2>Anläggning</h2>
   ${f('EAN-nummer','fore.ean',{im:'numeric',ph:'735999…'})}
@@ -371,7 +383,7 @@ function tEfter(j){ return `<h2>Kontroll efter byte</h2>
   <label class="f"><span>Kommentar</span><textarea data-k="efter.kommentar">${esc(j.efter.kommentar)}</textarea></label>
   ${photos('efter','Fota anläggningen efter')}`; }
 function tKlart(j){
-  const miss=[0,1,2].filter(i=>!tabDone(j,i)).map(i=>TABS[i]);
+  const miss=[1,2,3].filter(i=>!tabDone(j,i)).map(i=>TABS[i]);
   const fF=kfel(j,'fore'), fE=kfel(j,'efter');
   return `<h2>Sammanfattning</h2>
   <div class="sum">
@@ -585,6 +597,8 @@ async function protocolHtml(j){
 <p>Fel funna före byte: ${fF.length?`<span class="w">${fF.map(x=>esc(x.r.t)+(x.f.length?' ('+x.f.join(', ')+')':'')).join('; ')}</span>`:'Inga'}</p>
 <p>Fel kvar efter byte: ${fE.length?`<span class="w">${fE.map(x=>esc(x.r.t)+(x.f.length?' ('+x.f.join(', ')+')':'')).join('; ')}</span>`:'Inga'}</p>
 ${ratioChanged(j)?`<p class="w">Omsättning ändrad ${esc(j.fore.ratio)} → ${esc(j.byte.ratio)}. Mätaren ska programmeras om.</p>`:''}
+${(()=>{ const fb=j.forberedelse; return fb&&(fb.kontakt||fb.telefon||fb.viktigt||fb.notering)?`<h2>Förberedelse</h2><table>
+${fb.kontakt?`<tr><td>Kontaktperson</td><td>${esc(fb.kontakt)}</td></tr>`:''}${fb.telefon?`<tr><td>Telefon</td><td>${esc(fb.telefon)}</td></tr>`:''}${fb.viktigt?`<tr><td>Viktig information</td><td>${esc(fb.viktigt)}</td></tr>`:''}${fb.notering?`<tr><td>Anteckningar</td><td>${esc(fb.notering)}</td></tr>`:''}</table>`:''; })()}
 <h2>Anläggning</h2>
 <table>${j.order?`<tr><td>Arbetsorder</td><td>${esc(j.order.ao||'—')}</td></tr><tr><td>Beställt</td><td>${esc(j.order.uppdrag||'—')}</td></tr>`:''}<tr><td>EAN</td><td>${esc(j.fore.ean||'—')}</td></tr>
 <tr><td>Plint / placering</td><td>${esc(j.fore.plint||'—')} / ${esc(j.fore.placering||'—')}</td></tr>
@@ -657,7 +671,7 @@ function newJob(){
 }
 async function openJob(id,tab){
   st={view:'job',id,tab:0}; await loadPhotos(id);
-  const j=job(); st.tab = tab ?? ([0,1,2].find(i=>!tabDone(j,i)) ?? 3);
+  const j=job(); st.tab = tab ?? ([1,2,3].find(i=>!tabDone(j,i)) ?? 4);
   render();
 }
 function openBorda(fromJob){
@@ -696,7 +710,7 @@ $app.addEventListener('click',async e=>{
   if(a==='open') return openJob(b.dataset.id);
   if(a==='home'){ st={view:'list'}; return render(); }
   if(a==='tab'){ st.tab=+b.dataset.s; return render(); }
-  if(a==='next'){ st.tab=Math.min(3,st.tab+1); return render(); }
+  if(a==='next'){ st.tab=Math.min(4,st.tab+1); return render(); }
   if(a==='stamp'){ set(j,b.dataset.p,new Date().toISOString()); save(j); return render(true); }
   if(a==='safe'){ j.byte.safe[b.dataset.i]=!j.byte.safe[b.dataset.i]; save(j); return render(true); }
   if(a==='k2'){ const ph=b.dataset.ph, r=K2.find(x=>x.id===b.dataset.k), kk=j.kontroll[ph]=j.kontroll[ph]||{}, cur=kv(kk,r), nx=cur==='ok'?'fel':cur==='fel'?null:'ok';
@@ -704,9 +718,9 @@ $app.addEventListener('click',async e=>{
   if(a==='delphoto'){ if(!confirm('Ta bort fotot?')) return; await dbDel('photos',b.dataset.id); URL.revokeObjectURL(photoUrls[b.dataset.id]); delete photoUrls[b.dataset.id]; photoMeta=photoMeta.filter(p=>p.id!==b.dataset.id); return render(true); }
   if(a==='borda') return openBorda(false);
   if(a==='borda-job') return openBorda(true);
-  if(a==='back-job'){ st={view:'job',id:st.id,tab:1}; return render(); }
+  if(a==='back-job'){ st={view:'job',id:st.id,tab:2}; return render(); }
   if(a==='borda-save'){ const c=bCalc(); if(!c){ flash('Fyll i kabellängd och trafons max-börda'); return; }
-    j.borda.saved={...bt,tot:c.tot,ok:c.ok}; if(bt.min) j.byte.bmin=bt.min; if(bt.max) j.byte.bmax=bt.max; save(j); st={view:'job',id:j.id,tab:1}; flash('Börda sparad i protokollet'); return render(); }
+    j.borda.saved={...bt,tot:c.tot,ok:c.ok}; if(bt.min) j.byte.bmin=bt.min; if(bt.max) j.byte.bmax=bt.max; save(j); st={view:'job',id:j.id,tab:2}; flash('Börda sparad i protokollet'); return render(); }
   if(a==='share') return shareProtocol(j);
   if(a==='useorder'){ j.byte.ratio=j.order.newRatio; save(j); return render(true); }
   if(a==='bytt'){ j.byte.bytt=!j.byte.bytt; save(j); return render(true); }
