@@ -323,6 +323,12 @@ function tForberedelse(j){
   ${f('Kontaktperson','forberedelse.kontakt',{ph:'Namn'})}
   ${f('Telefonnummer','forberedelse.telefon',{im:'tel',ph:'070-...'})}
   <button class="check ${fb.rot?'on':''}" data-act="rot"><span class="box"></span><span>ROT-arbete</span></button>
+  ${fb.rot?`<div style="margin-top:14px">
+    ${f('Fastighetsbeteckning','forberedelse.fastighet',{ph:'t.ex. Kvarnen 3, eller BRF-org.nr + lgh-nr'})}
+    ${f('Personnummer köpare','forberedelse.personnummer',{im:'numeric',ph:'ÅÅÅÅMMDD-XXXX'})}
+    ${f('Antal arbetstimmar','forberedelse.timmar',{im:'decimal',ph:'2,5'})}
+    <p class="note">Underlag för Skatteverkets ROT-avdrag. Personnumret lagras bara i telefonen och skickas aldrig, förutom om du själv mejlar protokollet.</p>
+  </div>`:''}
   <h2>Viktig information</h2>
   <label class="f"><span>T.ex. koder, hund, säkerhetsrisker, parkering</span><textarea data-k="forberedelse.viktigt">${esc(fb.viktigt)}</textarea></label>
   <h2>Anteckningar</h2>
@@ -599,7 +605,7 @@ async function protocolHtml(j){
 <p>Fel kvar efter byte: ${fE.length?`<span class="w">${fE.map(x=>esc(x.r.t)+(x.f.length?' ('+x.f.join(', ')+')':'')).join('; ')}</span>`:'Inga'}</p>
 ${ratioChanged(j)?`<p class="w">Omsättning ändrad ${esc(j.fore.ratio)} → ${esc(j.byte.ratio)}. Mätaren ska programmeras om.</p>`:''}
 ${(()=>{ const fb=j.forberedelse; return fb&&(fb.kontakt||fb.telefon||fb.viktigt||fb.notering)?`<h2>Förberedelse</h2><table>
-${fb.kontakt?`<tr><td>Kontaktperson</td><td>${esc(fb.kontakt)}</td></tr>`:''}${fb.telefon?`<tr><td>Telefon</td><td>${esc(fb.telefon)}</td></tr>`:''}${fb.rot?`<tr><td>ROT-arbete</td><td>Ja</td></tr>`:''}${fb.viktigt?`<tr><td>Viktig information</td><td>${esc(fb.viktigt)}</td></tr>`:''}${fb.notering?`<tr><td>Anteckningar</td><td>${esc(fb.notering)}</td></tr>`:''}</table>`:''; })()}
+${fb.kontakt?`<tr><td>Kontaktperson</td><td>${esc(fb.kontakt)}</td></tr>`:''}${fb.telefon?`<tr><td>Telefon</td><td>${esc(fb.telefon)}</td></tr>`:''}${fb.rot?`<tr><td>ROT-arbete</td><td>Ja</td></tr>${fb.fastighet?`<tr><td>Fastighetsbeteckning</td><td>${esc(fb.fastighet)}</td></tr>`:''}${fb.personnummer?`<tr><td>Personnummer köpare</td><td>${esc(fb.personnummer)}</td></tr>`:''}${fb.timmar?`<tr><td>Arbetstimmar</td><td>${esc(fb.timmar)}</td></tr>`:''}`:''}${fb.viktigt?`<tr><td>Viktig information</td><td>${esc(fb.viktigt)}</td></tr>`:''}${fb.notering?`<tr><td>Anteckningar</td><td>${esc(fb.notering)}</td></tr>`:''}</table>`:''; })()}
 <h2>Anläggning</h2>
 <table>${j.order?`<tr><td>Arbetsorder</td><td>${esc(j.order.ao||'—')}</td></tr><tr><td>Beställt</td><td>${esc(j.order.uppdrag||'—')}</td></tr>`:''}<tr><td>EAN</td><td>${esc(j.fore.ean||'—')}</td></tr>
 <tr><td>Plint / placering</td><td>${esc(j.fore.plint||'—')} / ${esc(j.fore.placering||'—')}</td></tr>
