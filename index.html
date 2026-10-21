@@ -120,6 +120,8 @@ tr.sel td{color:var(--accent);font-weight:600}
 <body>
 <div id="status"></div>
 <main id="app"><p class="empty">Startar…</p></main>
+<script src="jspdf.umd.min.js"></script>
+<script src="protocol-pdf.js"></script>
 <script>
 /* ================= Data från Öresundskrafts blad ================= */
 const TABS = ['Förbered','Före','Byte','Efter','Klart'];
@@ -396,7 +398,7 @@ function tKlart(j){
   <div class="sum">
     ${miss.length?`<p class="warn">Inte klart: ${miss.join(', ')}</p>`:'<p>Alla steg ifyllda.</p>'}
     <p>${fF.length?`<span class="acc">${fF.length} fel funna före byte</span>`:'Inga fel före byte'}</p>
-    <p>${fE.length?`<span class="acc">${fE.length} fel kvar efter byte</span>`:'Inga fel efter byte'}</p>
+    <p>${fE.length?`<span class="acc">${fE.length} fel kvar efter byte</span>`:(kc(j,'efter')===K2.length?'Inga fel efter byte':'Efterkontroll inte klar')}</p>
     ${ratioChanged(j)?'<p class="acc">Omsättning ändrad – mätaren ska programmeras om</p>':''}
     <p class="note">${photoMeta.length} foton</p>
   </div>
@@ -602,7 +604,7 @@ async function protocolHtml(j){
 <p>LiRo Elteknik AB · Org.nr 559316-2752<br>Skapat ${fmtDT(j.created)} · Exporterat ${fmtDT(new Date().toISOString())}</p>
 <h2>Sammanfattning</h2>
 <p>Fel funna före byte: ${fF.length?`<span class="w">${fF.map(x=>esc(x.r.t)+(x.f.length?' ('+x.f.join(', ')+')':'')).join('; ')}</span>`:'Inga'}</p>
-<p>Fel kvar efter byte: ${fE.length?`<span class="w">${fE.map(x=>esc(x.r.t)+(x.f.length?' ('+x.f.join(', ')+')':'')).join('; ')}</span>`:'Inga'}</p>
+<p>Fel kvar efter byte: ${fE.length?`<span class="w">${fE.map(x=>esc(x.r.t)+(x.f.length?' ('+x.f.join(', ')+')':'')).join('; ')}</span>`:(kc(j,'efter')===K2.length?'Inga':'Efterkontroll inte klar')}</p>
 ${ratioChanged(j)?`<p class="w">Omsättning ändrad ${esc(j.fore.ratio)} → ${esc(j.byte.ratio)}. Mätaren ska programmeras om.</p>`:''}
 ${(()=>{ const fb=j.forberedelse; return fb&&(fb.kontakt||fb.telefon||fb.viktigt||fb.notering)?`<h2>Förberedelse</h2><table>
 ${fb.kontakt?`<tr><td>Kontaktperson</td><td>${esc(fb.kontakt)}</td></tr>`:''}${fb.telefon?`<tr><td>Telefon</td><td>${esc(fb.telefon)}</td></tr>`:''}${fb.rot?`<tr><td>ROT-arbete</td><td>Ja</td></tr>${fb.fastighet?`<tr><td>Fastighetsbeteckning</td><td>${esc(fb.fastighet)}</td></tr>`:''}${fb.personnummer?`<tr><td>Personnummer köpare</td><td>${esc(fb.personnummer)}</td></tr>`:''}${fb.timmar?`<tr><td>Arbetstimmar</td><td>${esc(fb.timmar)}</td></tr>`:''}`:''}${fb.viktigt?`<tr><td>Viktig information</td><td>${esc(fb.viktigt)}</td></tr>`:''}${fb.notering?`<tr><td>Anteckningar</td><td>${esc(fb.notering)}</td></tr>`:''}</table>`:''; })()}
@@ -633,15 +635,23 @@ ${imgs.map(i=>`<figure><img src="${i.src}" alt=""><figcaption>${esc(i.step)} · 
 </body></html>`;
 }
 async function shareProtocol(j){
-  flash('Skapar protokoll…');
-  const html=await protocolHtml(j);
-  const name=`trafobyte-${(j.fore.ean||'utan-ean').replace(/\W/g,'')}-${j.created.slice(0,10)}.html`;
-  const file=new File([html],name,{type:'text/html'});
-  try{
-    if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:'Protokoll trafobyte'}); return; }
-  }catch(e){ if(e.name==='AbortError') return; }
-  const a=document.createElement('a'); a.href=URL.createObjectURL(file); a.download=name; document.body.appendChild(a); a.click(); a.remove();
-  flash('Protokollet är sparat som fil');
+  flash('Skapar PDF…');
+  try {
+    const html=await protocolHtml(j);
+    const name='trafobyte-'+(j.fore.ean||'utan-ean').replace(/\W/g,'')+'-'+j.created.slice(0,10)+'.pdf';
+    const pdf=makeProtocolPdf(html,window.jspdf.jsPDF);
+    const file=new File([pdf.output('blob')],name,{type:'application/pdf'});
+    const url=URL.createObjectURL(file), dialog=document.createElement('dialog');
+    dialog.style.cssText='max-width:440px;width:85%;padding:24px;border-radius:16px';
+    dialog.innerHTML='<h2>PDF klar</h2><p>Protokollet och fotona finns i samma PDF.</p><p><a target="_blank" rel="noopener" data-preview>Öppna PDF</a></p><p><a data-download>Spara PDF</a></p><button data-send>Dela PDF</button><button data-close>Stäng</button><p data-message role="status"></p>';
+    dialog.querySelector('[data-preview]').href=url;
+    const download=dialog.querySelector('[data-download]');download.href=url;download.download=name;
+    const send=dialog.querySelector('[data-send]');send.hidden=!(navigator.canShare&&navigator.canShare({files:[file]}));
+    send.onclick=async()=>{try{await navigator.share({files:[file],title:'Protokoll trafobyte'});}catch(e){if(e.name!=='AbortError')dialog.querySelector('[data-message]').textContent='Delningen gick inte. Välj Spara PDF och bifoga filen.';}};
+    dialog.querySelector('[data-close]').onclick=()=>dialog.close();
+    dialog.addEventListener('close',()=>{dialog.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);},{once:true});
+    document.body.appendChild(dialog);dialog.showModal();
+  } catch(e){console.error(e);flash('PDF kunde inte skapas. Dina uppgifter finns kvar. Försök igen.');}
 }
 
 /* ================= Foton ================= */
