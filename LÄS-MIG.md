@@ -19,7 +19,7 @@ Koden blir publik, men dina byten och foton ligger bara i din telefon. Inget lad
 Öppna appen en gång med täckning. Sen fungerar den helt utan nät.
 
 ## 3. Efter varje jobb
-Tryck **Skicka protokoll till mig** under Klart och välj Mail.
+Tryck **Skapa PDF-protokoll** under Protokoll och välj Dela → Mail.
 Då finns protokollet med alla foton kvar även om telefonen tappas eller rensas.
 
 ## 4. Uppdatera appen
@@ -33,14 +33,21 @@ Dina sparade byten påverkas inte av uppdateringar.
 Kan också läggas i en mapp, t.ex. `liroelteknik.se/mt/`, om ditt webbhotell har https.
 
 ## Importera arbetsorder
-1. Öppna arket i Excel på datorn. Arkiv → Spara som → **CSV UTF-8 (kommaavgränsad)**.
-2. Mejla CSV-filen till dig själv. Öppna mejlet på iPhone, tryck på bilagan → Dela → **Spara i Filer**.
-3. I appen: **Importera arbetsorder** → välj filen i Filer.
-4. Utförda uppdrag (utfört-datum, stoppställning eller status OK) hoppas över. Uppdrag som redan finns i appen skrivs aldrig över.
+1. Spara arket som **.xlsx** (som det är). Lägg filen i Filer på telefonen, t.ex. via mejl → Spara i Filer.
+2. I appen: **Importera arbetsorder** → välj filen.
+3. **Grönmarkerade rader räknas som utförda och hoppas över.** Övriga rader blir jobb under *Planerade*.
+4. Jobb matchas på arbetsorder + EAN. Samma arbetsorder med flera EAN blir flera jobb.
+5. Finns jobbet redan fylls bara tomma fält i. Inget du skrivit skrivs över. Importera gärna samma fil igen.
+6. Kontaktperson, mobil, e-post, bokad tid, nyckel och mätarplacering hämtas från arket där de finns. Komplettera under *Inför arbetet*.
 
-Ekonomi, NDI och kolumnen "kommentar LiRo" läses aldrig in.
-Ladda aldrig upp arket eller CSV-filen till GitHub – repot är publikt.
+CSV fungerar fortfarande, men saknar färger. Då hoppas rader med utfört-datum, stoppställning eller status OK över.
+Ekonomi, peng och NDI läses aldrig in.
+Ladda aldrig upp arket till GitHub – repot är publikt.
+
+## Arbetsgång i ett jobb
+Arbetsorder → Inför arbetet → Före → Byte → Efter → Protokoll.
+EAN (anläggnings-ID) och mätarnummer är olika fält. Nytt mätarnummer och den nya mätarens avläsningar visas bara när du väljer **Elmätaren byts** under Byte.
 
 ## Rad tillbaka till Excel
-Under Klart: **Kopiera rad till Excel**. Klistra in i cellen *gammal mätarnummer* på rätt rad.
+Under Protokoll: **Kopiera rad till Excel**. Klistra in i cellen *gammal mätarnummer* på rätt rad.
 Raden finns också i protokollet du mejlar till dig själv, så du kan kopiera den från datorn.

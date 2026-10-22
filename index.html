@@ -39,7 +39,24 @@ button:active{transform:scale(.98)}
 .top .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:17px}
 .top button{width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.45);display:grid;place-items:center;flex:0 0 36px}
 .off{font-size:12px;font-weight:700;color:var(--ink);background:var(--soft);border-radius:500px;padding:3px 10px;display:inline-block}
-.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:12px 0 0}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px 0 0}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0 12px}
+.seg button{padding:10px 4px;background:var(--surface);border-radius:500px;font-size:14px;font-weight:600}
+.seg button.cur{background:var(--text);color:var(--ink);font-weight:700}
+.seg2{grid-template-columns:1fr 1fr}
+.seg2 button.cur{background:var(--accent)}
+h3{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:22px 0 4px}
+.telrow{display:flex;gap:8px;align-items:flex-end}
+.telrow label.f{flex:1}
+.call{flex:0 0 auto;display:flex;align-items:center;gap:6px;background:var(--accent);color:var(--ink);font-weight:700;border-radius:500px;padding:13px 16px;margin-bottom:14px;text-decoration:none}
+.call.off2{background:var(--surface);color:var(--dim);pointer-events:none}
+.ro{background:var(--elev);border-radius:8px;padding:10px 14px;margin:0 0 14px}
+.ro span{display:block;color:var(--muted);font-size:13px;font-weight:600}
+.ro b{font-weight:600;word-break:break-all}
+.src{color:var(--dim);font-size:12px;font-weight:600;margin-left:6px}
+dialog.pdf{max-width:440px;width:88%;padding:22px;border:0;border-radius:16px;background:var(--elev);color:var(--text)}
+dialog.pdf::backdrop{background:rgba(0,0,0,.6)}
+dialog.pdf a{display:block;text-align:center;text-decoration:none}
 .tabs button{padding:9px 2px;background:var(--surface);color:var(--text);font-size:12px;font-weight:600;border-radius:500px}
 .tabs button.cur{background:var(--accent);color:var(--ink);font-weight:700}
 .tabs button.done:not(.cur)::after{content:" ✓";color:var(--accent)}
@@ -124,7 +141,9 @@ tr.sel td{color:var(--accent);font-weight:600}
 <script src="protocol-pdf.js"></script>
 <script>
 /* ================= Data från Öresundskrafts blad ================= */
-const TABS = ['Förbered','Före','Byte','Efter','Klart'];
+const TABS = ['Arbetsorder','Inför arbetet','Före','Byte','Efter','Protokoll'];
+const T_ORDER=0, T_INFOR=1, T_FORE=2, T_BYTE=3, T_EFTER=4, T_PROT=5;
+const STATUS = {planerad:'Planerad', 'pågår':'Pågående', klar:'Klar'};
 const FAS = ['L1','L2','L3'], PLATS = ['Mätfack','Kopplingsplint','Mätaren'];
 const K2 = [
   {id:'p1', t:'Strömtransformatorer P1 → P2, P1 mot nät', c:FAS},
@@ -160,7 +179,9 @@ const ICON = {
   cam:'<svg class="i" viewBox="0 0 24 24"><path d="M3 8h4l2-3h6l2 3h4v11H3z"/><circle cx="12" cy="13" r="3.5"/></svg>',
   calc:'<svg class="i" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/></svg>',
   mt:'<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3"/></svg>',
-  trash:'<svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M10 7V4h4v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>'
+  trash:'<svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M10 7V4h4v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>',
+  tel:'<svg class="i" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>',
+  mail:'<svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>'
 };
 
 /* ================= Lagring (IndexedDB) ================= */
@@ -181,14 +202,15 @@ const dbAll=s=>tx(s,'readonly',o=>o.getAll());
 const photosOf=id=>tx('photos','readonly',o=>o.index('job').getAll(id));
 
 let saveT;
-function save(j=job()){
-  if(j.status==='planerad') j.status='pågår';
+/* started=true när själva arbetet påbörjas (Före/Byte/Efter). Ändringar i Arbetsorder och Inför arbetet flyttar inte jobbet från Planerade. */
+function save(j=job(),started=false){
+  if(started&&j.status==='planerad') j.status='pågår';
   clearTimeout(saveT);
   saveT=setTimeout(()=>dbPut('jobs',j).then(()=>flash('Sparat')).catch(()=>flash('Kunde inte spara. Telefonens lagring kan vara full.')),250);
 }
 
 /* ================= Hjälpare ================= */
-let st={view:'list'};
+let st={view:'list'}, L={seg:null,q:''};
 const $app=document.getElementById('app');
 function job(){ return jobs.find(j=>j.id===st.id); }
 function flash(t){ const s=document.getElementById('status'); s.textContent=t; s.style.opacity=1; clearTimeout(flash.t); flash.t=setTimeout(()=>s.style.opacity=0,1200); }
@@ -212,7 +234,7 @@ function sakWarn(j,which){
   const s=num(j.fore.sakring), out=[];
   if(!s) return '';
   if(which==='fore'){
-    const x=j.order&&j.order.xlnt; if(x&&x!==s) out.push(`Systemet (XLNT) anger ${x} A, på plats sitter ${s} A. Notera avvikelsen.`);
+    const x=num(j.order&&j.order.xlnt); if(x&&x!==s) out.push(`Systemet (XLNT) anger ${x} A, på plats sitter ${s} A. Notera avvikelsen.`);
     const p=prim(j.fore.ratio); if(p&&p<s) out.push(`Gammal trafo ${esc(j.fore.ratio)} har primärström under säkringen ${s} A. Kontrollera.`);
   } else {
     const p=prim(j.byte.ratio); if(p&&p<s) out.push(`Ny trafo ${esc(j.byte.ratio)} har primärström under säkringen ${s} A. Kontrollera.`);
@@ -223,20 +245,41 @@ function orderWarn(j){
   const o=j.order&&j.order.newRatio; if(!o||!j.byte.ratio) return '';
   return ratio(o)!==ratio(j.byte.ratio)?`<p class="warn">Ordern säger ${esc(o)}, du har skrivit ${esc(j.byte.ratio)}.</p>`:'<p class="note">Stämmer med ordern.</p>';
 }
+/* Nya mätarens avläsningar sparas i egna fält (n1–n4), skilda från samma mätares ställning efter (r1–r4) */
+const nk=r=>'n'+r.k.slice(1);
+function efterRegKey(j,r){ return j.byte.bytt?nk(r):r.k; }
 function tabDone(j,i){
+  const fb=j.forberedelse||{};
   return [
-    ()=>{ const fb=j.forberedelse; return !!(fb&&(fb.kontakt||fb.telefon||fb.rot||fb.viktigt||fb.notering)); },
-    ()=>j.fore.ean && j.fore.r1 && kc(j,'fore')===K2N,
-    ()=>j.byte.slut && j.byte.ratio && SAFE.every((_,x)=>j.byte.safe[x]),
-    ()=>j.efter.r1 && kc(j,'efter',true)===K2N,
+    ()=>!!(j.fore.ean && j.fore.adress),
+    ()=>!!(fb.kontakt||fb.telefon||fb.bokad||fb.nyckel||fb.tilltrade||j.fore.placering||fb.viktigt),
+    ()=>!!(j.fore.r1 && kc(j,'fore')===K2N),
+    ()=>!!(j.byte.slut && j.byte.ratio && SAFE.every((_,x)=>j.byte.safe[x]) && (!j.byte.bytt||j.byte.nyttnr)),
+    ()=>!!(j.efter[j.byte.bytt?'n1':'r1'] && kc(j,'efter',true)===K2N),
     ()=>j.status==='klar'
   ][i]();
+}
+/* Äldre sparade jobb: ta bort ROT-fält och flytta ny mätares avläsningar till egna fält */
+function normalize(j){
+  let ch=false;
+  j.fore=j.fore||{}; j.byte=j.byte||{safe:{}}; j.byte.safe=j.byte.safe||{}; j.efter=j.efter||{};
+  j.kontroll=j.kontroll||{}; j.kontroll.note=j.kontroll.note||{}; j.kontroll.note.fore=j.kontroll.note.fore||{}; j.kontroll.note.efter=j.kontroll.note.efter||{};
+  j.borda=j.borda||{}; j.forberedelse=j.forberedelse||{};
+  const fb=j.forberedelse;
+  for(const k of ['rot','fastighet','personnummer','timmar']) if(k in fb){ delete fb[k]; ch=true; }
+  if(j.byte.bytt && REGS.some(r=>j.efter[r.k]) && !REGS.some(r=>j.efter[nk(r)])){
+    REGS.forEach(r=>{ if(j.efter[r.k]){ j.efter[nk(r)]=j.efter[r.k]; delete j.efter[r.k]; } }); ch=true;
+  }
+  if(j.order&&j.order.nyckel&&!fb.nyckel){ fb.nyckel=j.order.nyckel; ch=true; }
+  return ch;
 }
 
 /* ================= Formulärdelar ================= */
 function f(label,p,o={}){
-  return `<label class="f"><span>${label}</span><input data-k="${p}" value="${esc(get(job(),p))}" ${o.im?`inputmode="${o.im}"`:''} ${o.ph?`placeholder="${o.ph}"`:''} autocomplete="off"></label>`;
+  return `<label class="f"><span>${label}</span><input data-k="${p}" value="${esc(get(job(),p))}" ${o.type?`type="${o.type}"`:''} ${o.im?`inputmode="${o.im}"`:''} ${o.ph?`placeholder="${o.ph}"`:''} autocomplete="off"></label>`;
 }
+function ta(label,p,ph=''){ return `<label class="f"><span>${label}</span><textarea data-k="${p}" placeholder="${esc(ph)}">${esc(get(job(),p))}</textarea></label>`; }
+function telHref(t){ const d=String(t||'').replace(/[^\d+]/g,''); return d.length>=6?'tel:'+d:''; }
 function sel(label,p,opts){
   const v=get(job(),p);
   return `<label class="f"><span>${label}</span><select data-k="${p}">${opts.map(o=>`<option ${o===v?'selected':''}>${o}</option>`).join('')}</select></label>`;
@@ -247,11 +290,12 @@ function photos(step,label){
   <label class="camera">${ICON.cam}<span>${label}</span><input type="file" accept="image/*" capture="environment" data-photo="${step}"></label>`;
 }
 function regFields(ph){
-  const j=job();
+  const j=job(), nyM=ph==='efter'&&j.byte.bytt;
   return `<div class="regs">${REGS.map(r=>{
-    const fv=num(j.fore[r.k]), ev=num(j[ph][r.k]), d=ph==='efter'&&!j.byte.bytt&&fv!=null&&ev!=null?ev-fv:null;
-    return `<label class="f"><span>${r.o} ${r.t}, ${r.u}</span><input data-k="${ph}.${r.k}" value="${esc(j[ph][r.k])}" inputmode="decimal" autocomplete="off">
-    ${ph==='efter'?`<small id="d-${r.k}" class="${d!=null&&d<0?'acc':''}">${diffText(d,r.u)}</small>`:''}</label>`;
+    const key=nyM?nk(r):r.k;
+    const fv=num(j.fore[r.k]), ev=num(j[ph][key]), d=ph==='efter'&&!nyM&&fv!=null&&ev!=null?ev-fv:null;
+    return `<label class="f"><span>${r.o} ${r.t}, ${r.u}</span><input data-k="${ph}.${key}" value="${esc(j[ph][key])}" inputmode="decimal" autocomplete="off">
+    ${ph==='efter'&&!nyM?`<small id="d-${r.k}" class="${d!=null&&d<0?'acc':''}">${diffText(d,r.u)}</small>`:''}</label>`;
   }).join('')}</div>`;
 }
 function diffText(d,u){ return d==null?'':d<0?`Lägre än före (${dec(d,1)} ${u}). Kontrollera avläsningen.`:`+${dec(d,1)} ${u} sedan före`; }
@@ -279,70 +323,94 @@ function schema(j){
 }
 
 /* ================= Vyer ================= */
+function bokSort(j){ const b=(j.forberedelse||{}).bokad||''; const m=String(b).match(/(\d{4})-(\d{2})-(\d{2})/); return m?m[0]:'9999'; }
+function searchText(j){ const o=j.order||{}, fb=j.forberedelse||{};
+  return [j.fore.adress,j.fore.ean,o.ao,j.fore.matarnr,o.matarnrRaw,fb.kontakt,fb.telefon,fb.nyckel,o.kund,o.uppdrag,j.fore.placering].join(' ').toLowerCase(); }
 function vList(){
   const off=!navigator.onLine?'<span class="off">Offline – allt sparas i telefonen</span>':'';
-  const planned=jobs.filter(j=>j.status==='planerad').length;
-  const going=jobs.filter(j=>j.status==='pågår').length;
+  const n={planerad:0,'pågår':0,klar:0}; jobs.forEach(j=>n[j.status]=(n[j.status]||0)+1);
+  if(!L.seg) L.seg = n['pågår']?'pågår':n.planerad?'planerad':'pågår';
   return `<div class="hero"><h1>Trafobyten</h1>${off}</div>
-  <p class="count">${jobs.length?[going&&going+' pågår',planned&&planned+' planerade',jobs.length-going-planned&&(jobs.length-going-planned)+' klara'].filter(Boolean).join(', '):'Inga byten än'}</p>
-  <div class="menu"><label class="mbtn">${ICON.imp}Importera arbetsorder<input type="file" accept=".csv,.txt,text/csv,.xlsx,.xls" data-import="1" hidden></label><button data-act="borda">${ICON.calc}Börda</button></div>
+  <p class="count">${jobs.length?`${jobs.length} jobb totalt`:'Inga byten än'}</p>
+  <div class="menu"><label class="mbtn">${ICON.imp}Importera arbetsorder<input type="file" accept=".xlsx,.csv,.txt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-import="1" hidden></label><button data-act="borda">${ICON.calc}Börda</button></div>
   <button class="primary" data-act="new">Starta nytt byte</button>
-  ${jobs.length>5?`<input data-q="1" value="${esc(st.q||'')}" placeholder="Sök adress, EAN eller order" style="margin:10px 0">`:''}
+  <input type="search" data-q="1" value="${esc(L.q||'')}" placeholder="Sök adress, EAN, order, mätarnr, kontakt" style="margin:14px 0 4px" aria-label="Sök jobb">
+  <div class="seg" role="tablist">${['planerad','pågår','klar'].map(s=>`<button role="tab" data-act="seg" data-s="${s}" class="${L.seg===s?'cur':''}">${s==='planerad'?'Planerade':s==='pågår'?'Pågående':'Klara'} ${n[s]||0}</button>`).join('')}</div>
   <div id="jl">${jobList()}</div>
-  ${planned?`<button class="ghost" data-act="clearplanned">Rensa ${planned} ej påbörjade uppdrag</button>`:''}`;
+  ${L.seg==='planerad'&&n.planerad?`<button class="ghost" data-act="clearplanned">Rensa ${n.planerad} ej påbörjade uppdrag</button>`:''}`;
+}
+function jobRow(j){
+  const o=j.order||{}, fb=j.forberedelse||{};
+  const sub=[o.newRatio?(o.oldRatio||'?')+' → '+o.newRatio:'', fb.bokad?'Bokad '+fb.bokad:'', o.ao||fmtDT(j.created)].filter(Boolean).join(' · ');
+  return `<button class="job" data-act="open" data-id="${j.id}">
+    <span class="cover s-${j.status}">${ICON.mt}</span><div><b>${esc(j.fore.adress||j.fore.ean||'Namnlöst byte')}</b><span>${esc(sub)}</span></div>
+    <span class="tag ${j.status==='pågår'?'on':''}">${STATUS[j.status]||j.status}</span></button>`;
 }
 function jobList(){
-  const q=(st.q||'').toLowerCase(), ord={'pågår':0,'planerad':1,'klar':2};
-  const list=jobs.filter(j=>!q||[j.fore.adress,j.fore.ean,j.order&&j.order.ao].join(' ').toLowerCase().includes(q))
-    .sort((a,b)=>(ord[a.status]-ord[b.status])||b.created.localeCompare(a.created));
+  const q=(L.q||'').trim().toLowerCase();
   if(!jobs.length) return '<p class="empty">Inga byten än. Importera arbetsordern eller starta ett nytt byte.</p>';
-  if(!list.length) return '<p class="empty">Inget matchar sökningen.</p>';
-  return list.map(j=>`<button class="job" data-act="open" data-id="${j.id}">
-    <span class="cover s-${j.status}">${ICON.mt}</span><div><b>${esc(j.fore.adress||j.fore.ean||'Namnlöst byte')}</b><span>${j.order&&j.order.newRatio?esc(j.order.oldRatio+' → '+j.order.newRatio)+' · ':''}${esc(j.order&&j.order.ao||fmtDT(j.created))}</span></div>
-    <span class="tag ${j.status==='pågår'?'on':''}">${j.status}</span></button>`).join('');
+  const sorter={planerad:(a,b)=>bokSort(a).localeCompare(bokSort(b))||String((a.order||{}).ao||'~').localeCompare(String((b.order||{}).ao||'~')),
+    'pågår':(a,b)=>b.created.localeCompare(a.created), klar:(a,b)=>(b.done||b.created).localeCompare(a.done||a.created)};
+  if(q){
+    const hits=jobs.filter(j=>searchText(j).includes(q));
+    if(!hits.length) return '<p class="empty">Inget matchar sökningen.</p>';
+    return ['pågår','planerad','klar'].map(s=>{ const l=hits.filter(j=>j.status===s).sort(sorter[s]); return l.length?`<h3>${s==='planerad'?'Planerade':s==='pågår'?'Pågående':'Klara'}</h3>${l.map(jobRow).join('')}`:''; }).join('');
+  }
+  const list=jobs.filter(j=>j.status===L.seg).sort(sorter[L.seg]);
+  if(!list.length) return `<p class="empty">Inga ${L.seg==='planerad'?'planerade':L.seg==='pågår'?'pågående':'klara'} jobb.</p>`;
+  return list.map(jobRow).join('');
 }
 function vJob(){
   const j=job(), s=st.tab;
   const head=`<div class="top"><button data-act="home" aria-label="Till listan">${ICON.back}</button><div class="t">${esc(j.fore.adress||j.fore.ean||'Nytt byte')}</div>${!navigator.onLine?'<span class="off">Offline</span>':''}<button data-act="delete" aria-label="Radera bytet">${ICON.trash}</button></div>
   <div class="tabs">${TABS.map((n,i)=>`<button data-act="tab" data-s="${i}" class="${i===s?'cur':''} ${tabDone(j,i)?'done':''}">${n}</button>`).join('')}</div>`;
-  const body=[tForberedelse,tFore,tByte,tEfter,tKlart][s](j);
-  const next=s<4?`<div class="bar"><button class="primary" data-act="next">Vidare till ${TABS[s+1]}</button></div>`:'';
+  const body=[tOrder,tInfor,tFore,tByte,tEfter,tProtokoll][s](j);
+  const next=s<T_PROT?`<div class="bar"><button class="primary" data-act="next">Vidare till ${TABS[s+1]}</button></div>`:'';
   return head+body+next;
 }
 function orderCard(j){
-  const o=j.order; if(!o) return '';
+  const o=j.order; if(!o||!(o.ao||o.newRatio||o.uppdrag)) return '';
   return `<div class="sum order">
     <p class="note">Arbetsorder ${esc(o.ao||'—')}</p>
     ${o.newRatio?`<p class="mid">${esc(o.oldRatio||'?')} → ${esc(o.newRatio)}</p><p class="note">${esc(o.newType||'')}</p>`:''}
-    ${o.uppdrag?`<p>${esc(o.uppdrag)}</p>`:''}
-    ${o.xlnt?`<p class="note">Säkring i systemet: ${o.xlnt} A</p>`:''}
-    ${o.nyckel?`<p class="note">Nyckel: ${esc(o.nyckel)}</p>`:''}
-    ${o.anteckning?`<p class="note">${esc(o.anteckning)}</p>`:''}</div>`;
+    ${o.uppdrag?`<p>${esc(o.uppdrag)}</p>`:''}</div>`;
 }
-function tForberedelse(j){
-  const fb=j.forberedelse||{};
-  return `${orderCard(j)}<h2>Kontakt</h2>
+function tOrder(j){
+  j.order=j.order||{};
+  const o=j.order;
+  return `${orderCard(j)}<h2>Arbetsorder</h2>
+  ${f('Arbetsordernummer','order.ao',{ph:'5000…'})}
+  ${f('EAN / anläggnings-ID','fore.ean',{im:'numeric',ph:'735999…'})}
+  <p class="note" style="margin:-8px 0 14px">18 siffror, börjar oftast på 735999. Inte samma som mätarnumret.</p>
+  ${f('Adress','fore.adress')}
+  ${ta('Uppdrag enligt order','order.uppdrag','t.ex. 300/5 0,2 → IA60B31 200/5')}
+  <div class="row2">${f('Omsättning enligt order, gammal','order.oldRatio',{ph:'300/5'})}${f('Omsättning enligt order, ny','order.newRatio',{ph:'200/5'})}</div>
+  ${f('Ny trafotyp','order.newType',{ph:'IA60B31'})}
+  <div class="row2">${f('Kategori','order.kat',{ph:'K2'})}${f('Nät','order.nat',{ph:'HBG 2022'})}</div>
+  ${f('Säkring i systemet (XLNT), A','order.xlnt',{im:'numeric'})}
+  ${f('Fastighetsägare / kund','order.kund')}
+  ${ta('Kommentar från arbetsordern','order.anteckning')}`;
+}
+function tInfor(j){
+  const fb=j.forberedelse, th=telHref(fb.telefon), ep=String(fb.epost||'').trim();
+  return `<h2>Inför arbetet</h2>
+  <p class="note">Hämtat från arbetsordern där det fanns. Komplettera och ändra fritt.</p><br>
   ${f('Kontaktperson','forberedelse.kontakt',{ph:'Namn'})}
-  ${f('Telefonnummer','forberedelse.telefon',{im:'tel',ph:'070-...'})}
-  <button class="check ${fb.rot?'on':''}" data-act="rot"><span class="box"></span><span>ROT-arbete</span></button>
-  ${fb.rot?`<div style="margin-top:14px">
-    ${f('Fastighetsbeteckning','forberedelse.fastighet',{ph:'t.ex. Kvarnen 3, eller BRF-org.nr + lgh-nr'})}
-    ${f('Personnummer köpare','forberedelse.personnummer',{im:'numeric',ph:'ÅÅÅÅMMDD-XXXX'})}
-    ${f('Antal arbetstimmar','forberedelse.timmar',{im:'decimal',ph:'2,5'})}
-    <p class="note">Underlag för Skatteverkets ROT-avdrag. Personnumret lagras bara i telefonen och skickas aldrig, förutom om du själv mejlar protokollet.</p>
-  </div>`:''}
-  <h2>Viktig information</h2>
-  <label class="f"><span>T.ex. koder, hund, säkerhetsrisker, parkering</span><textarea data-k="forberedelse.viktigt">${esc(fb.viktigt)}</textarea></label>
-  <h2>Anteckningar</h2>
-  <label class="f"><span>Övrigt inför besöket</span><textarea data-k="forberedelse.notering">${esc(fb.notering)}</textarea></label>
+  <div class="telrow">${f('Mobil','forberedelse.telefon',{type:'tel',im:'tel',ph:'070-…'})}<a class="call ${th?'':'off2'}" id="callbtn" href="${th||'#'}" aria-label="Ring kontaktpersonen">${ICON.tel}Ring</a></div>
+  <div class="telrow">${f('E-post','forberedelse.epost',{type:'email',im:'email',ph:'namn@företag.se'})}<a class="call ${ep.includes('@')?'':'off2'}" id="mailbtn" href="${ep.includes('@')?'mailto:'+esc(ep):'#'}" aria-label="Mejla kontaktpersonen">${ICON.mail}</a></div>
+  ${f('Bokad tid','forberedelse.bokad',{ph:'t.ex. 2026-10-27 kl 07.00'})}
+  ${f('Nyckel / portkod','forberedelse.nyckel',{ph:'t.ex. GB1, knippa, kod 1234'})}
+  ${ta('Tillträde','forberedelse.tilltrade','Vem öppnar, var hämtas nyckeln, parkering')}
+  ${f('Mätarplacering','fore.placering',{ph:'t.ex. elrum, källare, kabelmätarskåp'})}
+  ${ta('Viktig information','forberedelse.viktigt','Hund, säkerhetsrisker, kunden vill bli uppringd innan')}
+  ${ta('Övriga anteckningar','forberedelse.notering')}
   ${photos('forberedelse','Fota plats eller kontaktuppgifter')}`;
 }
 function tFore(j){ return `${orderCard(j)}<h2>Anläggning</h2>
-  ${f('EAN-nummer','fore.ean',{im:'numeric',ph:'735999…'})}
-  ${f('Adress','fore.adress')}
+  <div class="ro"><span>EAN / anläggnings-ID</span><b>${esc(j.fore.ean||'Saknas – fyll i under Arbetsorder')}</b></div>
   ${sel('Nätsystem','fore.nat',['TN-C 4-ledare','TN-S 5-ledare'])}
-  <div class="row2">${f('Mätarnummer','fore.matarnr',{im:'numeric'})}${f('Omsättning gammal trafo','fore.ratio',{ph:'200/5'})}</div>
-  <div class="row2">${f('Plint','fore.plint',{ph:'t.ex. A1'})}${f('Placering','fore.placering',{ph:'t.ex. elrum, källare'})}</div>
+  <div class="row2">${f('Mätarnummer (befintlig mätare)','fore.matarnr',{im:'numeric'})}${f('Omsättning gammal trafo','fore.ratio',{ph:'200/5'})}</div>
+  ${f('Plint','fore.plint',{ph:'t.ex. A1'})}
   <label class="f"><span>Mätarsäkring på plats, A</span><select data-k="fore.sakring">${SAKR.map(v=>`<option value="${v}" ${v===(j.fore.sakring||'')?'selected':''}>${v?v+' A':'Välj'}</option>`).join('')}</select></label>
   <div id="sw-fore">${sakWarn(j,'fore')}</div>
   <h2>Mätarställning före</h2>
@@ -370,9 +438,10 @@ function tByte(j){
   ${j.order&&j.order.newRatio&&!j.byte.ratio?`<button class="secondary" data-act="useorder">Monterat enligt order: ${esc(j.order.newRatio)}</button>`:''}
   <div id="rw">${orderWarn(j)}${ratioWarn(j)}${sakWarn(j,'byte')}</div>
   <div class="row2">${f('Börda min VA','byte.bmin',{im:'decimal',ph:'0,1'})}${f('Börda max VA','byte.bmax',{im:'decimal',ph:'1,5'})}</div>
-  <h2>Mätare</h2>
-  <button class="check ${j.byte.bytt?'on':''}" data-act="bytt"><span class="box"></span><span>Mätaren byttes också</span></button>
-  ${j.byte.bytt?`<br><div class="row2">${f('Nytt mätarnummer','byte.nyttnr',{im:'numeric'})}${f('Ny terminalnr','byte.terminal')}</div>`:''}
+  <h2>Elmätare</h2>
+  <div class="seg seg2"><button data-act="matare" data-v="0" class="${j.byte.bytt?'':'cur'}">Behålls</button><button data-act="matare" data-v="1" class="${j.byte.bytt?'cur':''}">Elmätaren byts</button></div>
+  ${j.byte.bytt?`<div class="row2">${f('Nytt mätarnummer','byte.nyttnr',{im:'numeric'})}${f('Ny terminalnr','byte.terminal')}</div>
+  <p class="note">Nya mätarens startställning fylls i under Efter, skild från den gamla mätarens ställning.</p>`:'<p class="note">Vanligast. Samma mätare läses av före och efter.</p>'}
   <br><button class="secondary" data-act="borda-job">${bo?`Börda sparad: ${dec(bo.tot,2)} VA · ${bo.ok?'OK':'Ej OK'} · öppna`:'Kontrollera bördan'}</button><br>
   ${photos('byte','Fota ny trafo och märkskylt')}`;
 }
@@ -385,29 +454,31 @@ function tEfter(j){ return `<h2>Kontroll efter byte</h2>
   <p class="note" id="kc-efter">${kc(j,'efter',true)} av ${K2N} OK</p>
   ${checklist(j,'efter')}
   ${schema(j)}
-  <h2>${j.byte.bytt?'Startställning ny mätare':'Mätarställning efter'}</h2>
+  ${j.byte.bytt?`<h2>Startställning ny mätare</h2>
+  <p class="note">Ny mätare ${esc(j.byte.nyttnr||'(nummer saknas under Byte)')}. Gamla mätarens ställning finns under Före.</p><br>`:'<h2>Mätarställning efter</h2>'}
   ${regFields('efter')}
   ${photos('register-efter','Fota register')}
   ${f('Nya plombnummer','efter.plomb')}
   <label class="f"><span>Kommentar</span><textarea data-k="efter.kommentar">${esc(j.efter.kommentar)}</textarea></label>
   ${photos('efter','Fota anläggningen efter')}`; }
-function tKlart(j){
-  const miss=[1,2,3].filter(i=>!tabDone(j,i)).map(i=>TABS[i]);
-  const fF=kfel(j,'fore'), fE=kfel(j,'efter');
+function tProtokoll(j){
+  const miss=[T_FORE,T_BYTE,T_EFTER].filter(i=>!tabDone(j,i)).map(i=>TABS[i]);
+  const fF=kfel(j,'fore'), fE=kfel(j,'efter'), eOk=kc(j,'efter',true);
   return `<h2>Sammanfattning</h2>
   <div class="sum">
     ${miss.length?`<p class="warn">Inte klart: ${miss.join(', ')}</p>`:'<p>Alla steg ifyllda.</p>'}
     <p>${fF.length?`<span class="acc">${fF.length} fel funna före byte</span>`:'Inga fel före byte'}</p>
-    <p>${fE.length?`<span class="acc">${fE.length} fel kvar efter byte</span>`:(kc(j,'efter')===K2.length?'Inga fel efter byte':'Efterkontroll inte klar')}</p>
+    <p>${fE.length?`<span class="acc">${fE.length} fel kvar efter byte</span>`:(eOk===K2N?'Efterkontroll godkänd':`<span class="warn">Efterkontroll inte klar – ${eOk} av ${K2N} OK. Inte godkänd.</span>`)}</p>
     ${ratioChanged(j)?'<p class="acc">Omsättning ändrad – mätaren ska programmeras om</p>':''}
+    ${j.byte.bytt?`<p>Elmätaren bytt. Nytt nr ${esc(j.byte.nyttnr||'saknas')}</p>`:''}
     <p class="note">${photoMeta.length} foton</p>
   </div>
-  <button class="primary" data-act="copyrow">Kopiera rad till Excel</button>
-  <p class="note">Klistra in i cellen <i>gammal mätarnummer</i> på rätt rad i arket. Fyller kolumnerna fram till startställning R-. Datum för utfört fyller du i själv.</p>
+  <button class="primary" data-act="share">Skapa PDF-protokoll</button>
+  <p class="note">En PDF med protokoll och alla foton. Öppna, spara eller dela den, t.ex. mejla till dig själv.</p>
+  <button class="secondary" data-act="copyrow">Kopiera rad till Excel</button>
+  <p class="note">Klistra in i cellen <i>gammal mätarnummer</i> på rätt rad i arket. Datum för utfört fyller du i själv.</p>
   <div id="rowprev"></div>
-  <button class="secondary" data-act="share">Skicka protokoll till mig</button>
-  <p class="note">Ett protokoll med alla foton. Välj Mail och skicka till dig själv, så finns det kvar även om telefonen försvinner.</p>
-  <button class="secondary" data-act="finish">${j.status==='klar'?'Öppna bytet igen':'Markera som klart'}</button>
+  <button class="secondary" data-act="finish">${j.status==='klar'?'Öppna jobbet igen':'Markera som klart'}</button>
   <button class="danger" data-act="delete">Radera bytet</button>`;
 }
 
@@ -463,7 +534,7 @@ function excelCells(j){
   const u=(v,unit)=>v?`${String(v).trim()} ${unit}`:'';
   const raw=j.order&&j.order.matarnrRaw;
   const mn = raw&&stripNr(raw)===stripNr(j.fore.matarnr) ? raw : (j.fore.matarnr?'*'+j.fore.matarnr:'');
-  const b=j.byte.bytt, e=j.efter;
+  const b=j.byte.bytt, e=b?{r1:j.efter.n1,r2:j.efter.n2,r3:j.efter.n3,r4:j.efter.n4}:j.efter;
   const cells=[mn, j.fore.plint||'', j.fore.placering||'', stamp(j.byte.start),
     u(j.fore.r1,'kWh'), u(j.fore.r3,'kvarh'), u(j.fore.r2,'kWh'), u(j.fore.r4,'kvarh'),
     j.fore.sakring?j.fore.sakring+' A':'',
@@ -515,11 +586,38 @@ async function unzipText(z,name){
   const s=new Blob([f.data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
   return await new Response(s).text();
 }
+/* Färger: fyllning i styles.xml (rgb, tema eller indexerad). Gröna rader = redan utförda. */
+const IDX=['000000','FFFFFF','FF0000','00FF00','0000FF','FFFF00','FF00FF','00FFFF','000000','FFFFFF','FF0000','00FF00','0000FF','FFFF00','FF00FF','00FFFF',
+ '800000','008000','000080','808000','800080','008080','C0C0C0','808080','9999FF','993366','FFFFCC','CCFFFF','660066','FF8080','0066CC','CCCCFF',
+ '000080','FF00FF','FFFF00','00FFFF','800080','800000','008080','0000FF','00CCFF','CCFFFF','CCFFCC','FFFF99','99CCFF','FF99CC','CC99FF','FFCC99',
+ '3366FF','33CCCC','99CC00','FFCC00','FF9900','FF6600','666699','969696','003366','339966','003300','333300','993300','993366','333399','333333'];
+function tintHex(hex,t){ if(!t) return hex; const c=[0,2,4].map(i=>parseInt(hex.substr(i,2),16)).map(v=>Math.round(t>0?v+(255-v)*t:v*(1+t)));
+  return c.map(v=>Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')).join('').toUpperCase(); }
+function isGreen(hex){ if(!hex||hex.length<6) return false; const [r,g,b]=[0,2,4].map(i=>parseInt(hex.substr(i,2),16)); return g>=r+25&&g>=b+25&&g>=90; }
+async function readStyles(z,P){
+  const theme=[]; const tx=await unzipText(z,'xl/theme/theme1.xml');
+  if(tx){ const cs=P(tx).getElementsByTagNameNS('*','clrScheme')[0];
+    if(cs){ const v=[...cs.children].map(e=>{ const c=e.firstElementChild; return c?(c.getAttribute('val')&&c.localName==='srgbClr'?c.getAttribute('val'):c.getAttribute('lastClr')||''):''; });
+      /* Excel: 0=lt1 1=dk1 2=lt2 3=dk2, sedan accent1–6 */
+      theme.push(v[1],v[0],v[3],v[2],...v.slice(4)); } }
+  const sx=await unzipText(z,'xl/styles.xml'); if(!sx) return [];
+  const d=P(sx), fillsEl=d.getElementsByTagName('fills')[0], xfsEl=d.getElementsByTagName('cellXfs')[0];
+  const fills=fillsEl?[...fillsEl.getElementsByTagName('fill')].map(fl=>{
+    const pf=fl.getElementsByTagName('patternFill')[0]; if(!pf||pf.getAttribute('patternType')!=='solid') return '';
+    const fg=pf.getElementsByTagName('fgColor')[0]; if(!fg) return '';
+    const t=+(fg.getAttribute('tint')||0);
+    if(fg.getAttribute('rgb')) return tintHex(fg.getAttribute('rgb').slice(-6).toUpperCase(),t);
+    if(fg.getAttribute('theme')!=null){ const h=theme[+fg.getAttribute('theme')]; return h?tintHex(h.toUpperCase(),t):''; }
+    if(fg.getAttribute('indexed')!=null) return IDX[+fg.getAttribute('indexed')]||'';
+    return ''; }):[];
+  return xfsEl?[...xfsEl.getElementsByTagName('xf')].map(x=>fills[+(x.getAttribute('fillId')||0)]||''):[];
+}
 async function readXlsx(file){
   if(typeof DecompressionStream==='undefined') throw new Error('Telefonen saknar stöd för xlsx');
   const z=await unzipEntries(await file.arrayBuffer()), P=t=>new DOMParser().parseFromString(t,'application/xml');
   const sst=[]; const ss=await unzipText(z,'xl/sharedStrings.xml');
   if(ss) for(const si of P(ss).getElementsByTagName('si')) sst.push([...si.getElementsByTagName('t')].filter(t=>t.parentNode.nodeName!=='rPh').map(t=>t.textContent).join(''));
+  const xfFill=await readStyles(z,P);
   const rel={}; const rx=await unzipText(z,'xl/_rels/workbook.xml.rels');
   if(rx) for(const r of P(rx).getElementsByTagName('Relationship')){ const t=r.getAttribute('Target'); rel[r.getAttribute('Id')]=t.startsWith('/')?t.slice(1):'xl/'+t; }
   const wb=P(await unzipText(z,'xl/workbook.xml'));
@@ -532,19 +630,22 @@ async function readXlsx(file){
   const sheets=[];
   for(const path of paths){
     const x=await unzipText(z,path); if(!x) continue;
-    const rows=[];
+    const rows=[], fills=[];
     for(const row of P(x).getElementsByTagName('row')){
-      const arr=[];
+      const arr=[], fa=[];
       for(const c of row.getElementsByTagName('c')){
         const t=c.getAttribute('t'), vEl=c.getElementsByTagName('v')[0]; let val='';
         if(t==='s') val=vEl?sst[+vEl.textContent]??'':'';
         else if(t==='inlineStr') val=[...c.getElementsByTagName('t')].map(e=>e.textContent).join('');
         else val=vEl?vEl.textContent:'';
-        arr[c.getAttribute('r')?colIdx(c.getAttribute('r')):arr.length]=val;
+        const ci=c.getAttribute('r')?colIdx(c.getAttribute('r')):arr.length;
+        arr[ci]=val; fa[ci]=xfFill[+(c.getAttribute('s')||0)]||'';
       }
-      rows[row.getAttribute('r')?(+row.getAttribute('r')-1):rows.length]=Array.from(arr,v=>v??'');
+      const ri=row.getAttribute('r')?(+row.getAttribute('r')-1):rows.length;
+      rows[ri]=Array.from(arr,v=>v??''); fills[ri]=Array.from(fa,v=>v??'');
     }
-    sheets.push(Array.from(rows,r=>r||[]));
+    const R=Array.from(rows,r=>r||[]); R.fills=Array.from(fills,r=>r||[]);
+    sheets.push(R);
   }
   return sheets;
 }
@@ -552,38 +653,87 @@ function headerAt(rows){
   for(let i=0;i<Math.min(rows.length,15);i++) if((rows[i]||[]).some(x=>String(x).trim().toLowerCase()==='ean')) return i;
   return -1;
 }
+const clean1=s=>String(s??'').replace(/[\t\r\n]+/g,' ').replace(/\s{2,}/g,' ').trim();
+/* Excel-datum (serienummer) till läsbar text */
+function xlDate(v){
+  const s=clean1(v); if(!/^\d{5}(\.\d+)?$/.test(s)) return s;
+  const n=+s; if(n<30000||n>80000) return s;
+  const d=new Date(Date.UTC(1899,11,30)+Math.round(n*86400000)), p=x=>String(x).padStart(2,'0');
+  const day=`${d.getUTCFullYear()}-${p(d.getUTCMonth()+1)}-${p(d.getUTCDate())}`;
+  return n%1?`${day} kl ${p(d.getUTCHours())}.${p(d.getUTCMinutes())}`:day;
+}
+const RE_TEL=/(?:\+46|\b0)\d[\d \-]{5,13}\d/g, RE_MAIL=/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/;
+/* Plockar kontaktperson, mobil och e-post ur kommentarerna */
+function parseContact(p,q){
+  const out={kontakt:'',telefon:'',epost:'',viktigt:''};
+  const mail=(p.match(RE_MAIL)||q.match(RE_MAIL)||[''])[0]; out.epost=mail;
+  const nameFrom=t=>{ const r=t.replace(RE_TEL,' ').replace(RE_MAIL,' ').replace(/[,;:()\-–]+/g,' ').replace(/\s+/g,' ').trim();
+    return r.length>=2&&r.length<=40&&r.split(' ').length<=4&&r.split(' ').every(w=>/^[A-ZÅÄÖÉ]/.test(w))&&!/\b(box|ab|kb|brf)\b/i.test(r)?r:''; };
+  const tp=p.match(RE_TEL), tq=q.match(RE_TEL);
+  if(tp){ out.telefon=tp[0].trim(); out.kontakt=nameFrom(p); }
+  else if(tq){ out.telefon=tq[0].trim(); const segs=q.split(/[,;]/), seg=segs.find(s=>new RegExp(RE_TEL.source).test(s))||'';
+    out.kontakt=nameFrom(seg)||segs.map(nameFrom).find(Boolean)||''; }
+  const rest=p.replace(RE_TEL,'').replace(RE_MAIL,'').replace(out.kontakt,'').replace(/[\s,;:.\-–]+/g,' ').trim();
+  if(rest.length>=6) out.viktigt=p;
+  return out;
+}
 async function importOrders(file){
-  if(/\.xls$/i.test(file.name)){ alert('Gammalt Excel-format (.xls). Spara som .xlsx eller CSV UTF-8 och försök igen.'); return; }
-  let rows;
+  if(/\.xls$/i.test(file.name)){ alert('Gammalt Excel-format (.xls). Spara som .xlsx och försök igen.'); return; }
+  let rows, fills=[];
   if(/\.xlsx$/i.test(file.name)){
     const sheets=await readXlsx(file);
-    rows=sheets.find(r=>headerAt(r)>=0)||sheets[0]||[];
+    rows=sheets.find(r=>headerAt(r)>=0)||sheets[0]||[]; fills=rows.fills||[];
   } else rows=parseCSV(await readText(file));
-  const hi=Math.max(0,headerAt(rows)); rows=rows.slice(hi);
-  const h=(rows[0]||[]).map(x=>String(x).trim().toLowerCase());
+  const hi=Math.max(0,headerAt(rows)); rows=rows.slice(hi); fills=fills.slice(hi);
+  const h=(rows[0]||[]).map(x=>clean1(x).toLowerCase());
   const col=fn=>h.findIndex(fn);
   const C={ ao:col(x=>x==='arbetsorder'), ean:col(x=>x==='ean'), adr:col(x=>x==='adress'), xlnt:col(x=>x.startsWith('xlnt')),
-    upp:col(x=>x==='kommentar ökab'), nyc:col(x=>x==='nyckel'), ant:col(x=>x==='kommentar ökab/liro'),
+    kat:col(x=>x.startsWith('kat')), nat:col(x=>x==='nät'), stat:col(x=>x==='status'),
+    upp:col(x=>x==='kommentar ökab'), bok:col(x=>x.startsWith('bokade')), nyc:col(x=>x==='nyckel'), ant:col(x=>x==='kommentar ökab/liro'), liro:col(x=>x==='kommentar liro'),
     mnr:col(x=>x.startsWith('gammal mätarnummer')), pl:col(x=>x.startsWith('plint')), plc:col(x=>x.startsWith('placering')),
-    utf:col(x=>x.startsWith('utfört')), stat:col(x=>x==='status'), stopA:col(x=>x.startsWith('stoppställning a+')) };
+    utf:col(x=>x.startsWith('utfört')), stopA:col(x=>x.startsWith('stoppställning a+')),
+    kon:col(x=>x.startsWith('kontakt')), tel:col(x=>/^(mobil|telefon|tel)/.test(x)), mail:col(x=>/^(e-?post|e-?mail|mail)/.test(x)) };
   if(C.ean<0){ alert('Hittar ingen kolumn som heter EAN. Är det rätt fil?'); return; }
-  const v=(r,i)=>i<0?'':String(r[i]??'').trim();
-  let added=0, done=0, dup=0;
-  for(const r of rows.slice(1)){
-    const ean=stripNr(v(r,C.ean)); if(!ean) continue;
-    if(v(r,C.utf)||v(r,C.stopA)||/^ok$/i.test(v(r,C.stat))){ done++; continue; }
-    const ao=v(r,C.ao);
-    if(jobs.some(x=>(ao&&x.order&&x.order.ao===ao)||(!ao&&x.fore.ean===ean))){ dup++; continue; }
+  const v=(r,i)=>i<0?'':clean1(r[i]);
+  const data=rows.slice(1), fdat=fills.slice(1);
+  const rowGreen=i=>{ const r=data[i]||[], fr=fdat[i]||[];
+    if(isGreen(fr[C.ean])) return true;
+    let n=0,g=0; r.forEach((x,c)=>{ if(clean1(x)){ n++; if(isGreen(fr[c])) g++; } }); return n>0&&g/n>=0.5; };
+  const colorMode=data.some((_,i)=>rowGreen(i));
+  let added=0, done=0, dup=0, filled=0; const seen=new Set();
+  for(let i=0;i<data.length;i++){
+    const r=data[i]; const ean=stripNr(v(r,C.ean)); if(!ean) continue;
+    if(colorMode ? rowGreen(i) : (v(r,C.utf)||v(r,C.stopA)||/^ok$/i.test(v(r,C.stat)))){ done++; continue; }
+    const ao=v(r,C.ao), key=ao+'|'+ean;
+    if(seen.has(key)){ dup++; continue; } seen.add(key);
     const upp=v(r,C.upp), m=upp.match(/(\d+)\s*\/\s*5[^>]*?->\s*([A-Za-z][A-Za-z0-9]*)?\s*(\d+)\s*\/\s*5/);
-    const xm=v(r,C.xlnt).match(/(\d+)\s*a/i), raw=v(r,C.mnr);
+    const xm=v(r,C.xlnt).match(/(\d+)\s*a/i), raw=String(C.mnr<0?'':r[C.mnr]??'').trim();
+    const mnr=(raw.match(/\d{6,}/)||[''])[0];
+    const p=v(r,C.ant), q=v(r,C.liro), ct=parseContact(p,q);
+    let bok=xlDate(r[C.bok]??''), vikt=ct.viktigt;
+    if(bok&&!/^\d{4}-\d\d-\d\d/.test(bok)&&!(/\d/.test(bok)&&bok.length<=40)){ vikt=[vikt,bok].filter(Boolean).join('. '); bok=''; }
+    const utf=xlDate(r[C.utf]??''); if(utf) vikt=[vikt,'Utfört-kolumn i arket: '+utf].filter(Boolean).join('. ');
+    const vals={
+      'order.ao':ao, 'order.uppdrag':upp, 'order.oldRatio':m?m[1]+'/5':'', 'order.newType':m&&m[2]||'', 'order.newRatio':m?m[3]+'/5':'',
+      'order.xlnt':xm?xm[1]:'', 'order.kat':v(r,C.kat), 'order.nat':v(r,C.nat), 'order.nyckel':v(r,C.nyc), 'order.anteckning':p, 'order.kund':q, 'order.matarnrRaw':raw,
+      'fore.ean':ean, 'fore.adress':v(r,C.adr), 'fore.matarnr':mnr, 'fore.ratio':m?m[1]+'/5':'', 'fore.plint':v(r,C.pl), 'fore.placering':v(r,C.plc),
+      'forberedelse.kontakt':v(r,C.kon)||ct.kontakt, 'forberedelse.telefon':v(r,C.tel)||ct.telefon, 'forberedelse.epost':v(r,C.mail)||ct.epost,
+      'forberedelse.bokad':bok, 'forberedelse.nyckel':v(r,C.nyc), 'forberedelse.viktigt':vikt };
+    /* Samma arbetsorder kan ha flera EAN, så matchning sker på arbetsorder + EAN */
+    const ex=jobs.find(x=>stripNr(x.fore.ean)===ean && ((ao&&x.order&&x.order.ao===ao)||(!(x.order&&x.order.ao))));
+    if(ex){
+      normalize(ex); ex.order=ex.order||{}; let n=0;
+      for(const [k,val] of Object.entries(vals)){ const cur=get(ex,k); if(val&&(cur==null||String(cur).trim()==='')){ set(ex,k,val); n++; } }
+      if(n){ await dbPut('jobs',ex); filled++; } else dup++;
+      continue;
+    }
     const j={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), created:new Date().toISOString(), status:'planerad',
-      order:{ao, uppdrag:upp, oldRatio:m?m[1]+'/5':'', newType:m&&m[2]||'', newRatio:m?m[3]+'/5':'', xlnt:xm?+xm[1]:null, nyckel:v(r,C.nyc), anteckning:v(r,C.ant), matarnrRaw:raw},
-      fore:{nat:'TN-C 4-ledare', ean, adress:v(r,C.adr), matarnr:stripNr(raw), ratio:m?m[1]+'/5':'', plint:v(r,C.pl), placering:v(r,C.plc)},
-      byte:{safe:{}}, efter:{}, kontroll:{fore:{},efter:{},note:{fore:{},efter:{}}}, borda:{}};
+      order:{}, fore:{nat:'TN-C 4-ledare'}, byte:{safe:{}}, efter:{}, kontroll:{fore:{},efter:{},note:{fore:{},efter:{}}}, borda:{}, forberedelse:{}};
+    for(const [k,val] of Object.entries(vals)) if(val) set(j,k,val);
     jobs.push(j); await dbPut('jobs',j); added++;
   }
-  render();
-  alert(`${added} nya uppdrag importerade.\n${done} redan utförda hoppades över.\n${dup} fanns redan i appen eller förekom två gånger i filen.`);
+  L.seg='planerad'; render();
+  alert(`${added} nya jobb importerade.\n${filled} befintliga jobb kompletterade (inget skrevs över).\n${done} ${colorMode?'grönmarkerade (utförda)':'utförda'} rader hoppades över.\n${dup} fanns redan eller förekom två gånger.`);
 }
 
 /* ================= Protokoll ================= */
@@ -595,7 +745,11 @@ async function protocolHtml(j){
   const kf=j.kontroll.fore||{}, ke=j.kontroll.efter||{}, nt=j.kontroll.note;
   const rows=K2.map(r=>`<tr><td>${r.t}${nt.fore[r.id]?`<br><i>Före: ${esc(nt.fore[r.id])}</i>`:''}${nt.efter[r.id]?`<br><i>Efter: ${esc(nt.efter[r.id])}</i>`:''}</td>
     <td>${mk(kv(kf,r))}</td><td>${mk(kv(ke,r))}</td></tr>`).join('');
-  const regs=REGS.map(r=>{const a=num(j.fore[r.k]),b=num(j.efter[r.k]);return `<tr><td>${r.o} ${r.t}</td><td>${esc(j.fore[r.k]||'—')}</td><td>${esc(j.efter[r.k]||'—')}</td><td>${a!=null&&b!=null?dec(b-a,1):'—'} ${r.u}</td></tr>`}).join('');
+  const regs=j.byte.bytt
+    ? REGS.map(r=>`<tr><td>${r.o} ${r.t}</td><td>${esc(j.fore[r.k]||'—')}</td><td>${esc(j.efter[nk(r)]||'—')}</td><td>${r.u}</td></tr>`).join('')
+    : REGS.map(r=>{const a=num(j.fore[r.k]),b=num(j.efter[r.k]);return `<tr><td>${r.o} ${r.t}</td><td>${esc(j.fore[r.k]||'—')}</td><td>${esc(j.efter[r.k]||'—')}</td><td>${a!=null&&b!=null?dec(b-a,1):'—'} ${r.u}</td></tr>`}).join('');
+  const tr=(l,v)=>v?`<tr><td>${l}</td><td>${esc(v)}</td></tr>`:'';
+  const o=j.order||{}, fb=j.forberedelse||{};
   const fF=kfel(j,'fore'), fE=kfel(j,'efter'), bo=j.borda&&j.borda.saved;
   const min=j.byte.start&&j.byte.slut?Math.round((new Date(j.byte.slut)-new Date(j.byte.start))/60000):'—';
   return `<!DOCTYPE html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Protokoll trafobyte ${esc(j.fore.ean||'')}</title>
@@ -604,21 +758,21 @@ async function protocolHtml(j){
 <p>LiRo Elteknik AB · Org.nr 559316-2752<br>Skapat ${fmtDT(j.created)} · Exporterat ${fmtDT(new Date().toISOString())}</p>
 <h2>Sammanfattning</h2>
 <p>Fel funna före byte: ${fF.length?`<span class="w">${fF.map(x=>esc(x.r.t)+(x.f.length?' ('+x.f.join(', ')+')':'')).join('; ')}</span>`:'Inga'}</p>
-<p>Fel kvar efter byte: ${fE.length?`<span class="w">${fE.map(x=>esc(x.r.t)+(x.f.length?' ('+x.f.join(', ')+')':'')).join('; ')}</span>`:(kc(j,'efter')===K2.length?'Inga':'Efterkontroll inte klar')}</p>
+<p>Fel kvar efter byte: ${fE.length?`<span class="w">${fE.map(x=>esc(x.r.t)+(x.f.length?' ('+x.f.join(', ')+')':'')).join('; ')}</span>`:(kc(j,'efter',true)===K2N?'Inga, efterkontroll godkänd':'Efterkontroll inte klar – ej godkänd')}</p>
 ${ratioChanged(j)?`<p class="w">Omsättning ändrad ${esc(j.fore.ratio)} → ${esc(j.byte.ratio)}. Mätaren ska programmeras om.</p>`:''}
-${(()=>{ const fb=j.forberedelse; return fb&&(fb.kontakt||fb.telefon||fb.viktigt||fb.notering)?`<h2>Förberedelse</h2><table>
-${fb.kontakt?`<tr><td>Kontaktperson</td><td>${esc(fb.kontakt)}</td></tr>`:''}${fb.telefon?`<tr><td>Telefon</td><td>${esc(fb.telefon)}</td></tr>`:''}${fb.rot?`<tr><td>ROT-arbete</td><td>Ja</td></tr>${fb.fastighet?`<tr><td>Fastighetsbeteckning</td><td>${esc(fb.fastighet)}</td></tr>`:''}${fb.personnummer?`<tr><td>Personnummer köpare</td><td>${esc(fb.personnummer)}</td></tr>`:''}${fb.timmar?`<tr><td>Arbetstimmar</td><td>${esc(fb.timmar)}</td></tr>`:''}`:''}${fb.viktigt?`<tr><td>Viktig information</td><td>${esc(fb.viktigt)}</td></tr>`:''}${fb.notering?`<tr><td>Anteckningar</td><td>${esc(fb.notering)}</td></tr>`:''}</table>`:''; })()}
+<h2>Arbetsorder</h2><table>${tr('Arbetsorder',o.ao)}${tr('EAN / anläggnings-ID',j.fore.ean||'—')}${tr('Adress',j.fore.adress)}${tr('Uppdrag',o.uppdrag)}${tr('Kategori',o.kat)}${tr('Nät',o.nat)}${tr('Fastighetsägare / kund',o.kund)}</table>
+${[fb.kontakt,fb.telefon,fb.epost,fb.bokad,fb.nyckel,fb.tilltrade,j.fore.placering,fb.viktigt,fb.notering].some(Boolean)?`<h2>Inför arbetet</h2><table>${tr('Kontaktperson',fb.kontakt)}${tr('Mobil',fb.telefon)}${tr('E-post',fb.epost)}${tr('Bokad tid',fb.bokad)}${tr('Nyckel / portkod',fb.nyckel)}${tr('Tillträde',fb.tilltrade)}${tr('Mätarplacering',j.fore.placering)}${tr('Viktig information',fb.viktigt)}${tr('Anteckningar',fb.notering)}</table>`:''}
 <h2>Anläggning</h2>
-<table>${j.order?`<tr><td>Arbetsorder</td><td>${esc(j.order.ao||'—')}</td></tr><tr><td>Beställt</td><td>${esc(j.order.uppdrag||'—')}</td></tr>`:''}<tr><td>EAN</td><td>${esc(j.fore.ean||'—')}</td></tr>
+<table><tr><td>EAN / anläggnings-ID</td><td>${esc(j.fore.ean||'—')}</td></tr>
 <tr><td>Plint / placering</td><td>${esc(j.fore.plint||'—')} / ${esc(j.fore.placering||'—')}</td></tr>
-<tr><td>Mätarsäkring</td><td>${j.fore.sakring?j.fore.sakring+' A':'—'}${j.order&&j.order.xlnt?` (system: ${j.order.xlnt} A)`:''}</td></tr><tr><td>Adress</td><td>${esc(j.fore.adress||'—')}</td></tr><tr><td>Nätsystem</td><td>${esc(j.fore.nat)}</td></tr><tr><td>Mätarnummer</td><td>${esc(j.fore.matarnr||'—')}</td></tr></table>
-<h2>${j.byte.bytt?'Mätarställning (efter = ny mätare)':'Mätarställning (primärvärden)'}</h2>
-<table><tr><th>Register</th><th>Före</th><th>Efter</th><th>Diff</th></tr>${regs}</table>
+<tr><td>Mätarsäkring</td><td>${j.fore.sakring?j.fore.sakring+' A':'—'}${j.order&&j.order.xlnt?` (system: ${j.order.xlnt} A)`:''}</td></tr><tr><td>Adress</td><td>${esc(j.fore.adress||'—')}</td></tr><tr><td>Nätsystem</td><td>${esc(j.fore.nat)}</td></tr><tr><td>Mätarnummer${j.byte.bytt?' (gammal mätare)':''}</td><td>${esc(j.fore.matarnr||'—')}</td></tr></table>
+<h2>Mätarställning (primärvärden)</h2>
+${j.byte.bytt?`<table><tr><th>Register</th><th>Gammal mätare ${esc(j.fore.matarnr||'')}</th><th>Ny mätare ${esc(j.byte.nyttnr||'')} start</th><th>Enhet</th></tr>${regs}</table>`:`<table><tr><th>Register</th><th>Före</th><th>Efter</th><th>Diff</th></tr>${regs}</table>`}
 <h2>Byte</h2>
 <table><tr><td>Säkerhet före arbete</td><td>${SAFE.map((s,i)=>`${j.byte.safe[i]?'✓':'✕'} ${s}`).join('<br>')}</td></tr>
 <tr><td>Avbrott</td><td>${fmtT(j.byte.start)}–${fmtT(j.byte.slut)} (${min} min)</td></tr>
 <tr><td>Omsättning</td><td>${esc(j.fore.ratio||'—')} → ${esc(j.byte.ratio||'—')}${j.order&&j.order.newRatio?` (order: ${esc(j.order.newRatio)})`:''}</td></tr>
-<tr><td>Mätare bytt</td><td>${j.byte.bytt?`Ja. Nytt nr ${esc(j.byte.nyttnr||'—')}, terminal ${esc(j.byte.terminal||'—')}`:'Nej'}</td></tr>
+<tr><td>Elmätare</td><td>${j.byte.bytt?`Bytt. Nytt nr ${esc(j.byte.nyttnr||'—')}, terminal ${esc(j.byte.terminal||'—')}`:'Behålls'}</td></tr>
 <tr><td>Ny trafo börda</td><td>${esc(j.byte.bmin||'—')}–${esc(j.byte.bmax||'—')} VA</td></tr>
 <tr><td>Brutna plomber</td><td>${esc(j.fore.plomb||'—')}</td></tr><tr><td>Nya plomber</td><td>${esc(j.efter.plomb||'—')}</td></tr></table>
 ${bo?`<h2>Börda i strömkrets</h2><p>${dec(num(bo.langd),1)} m × ${bo.area} mm² + ${esc(bo.pl)} VA = <b>${dec(bo.tot,2)} VA</b> mot trafons ${esc(bo.min||'—')}–${esc(bo.max)} VA: <b>${bo.ok?'OK':'<span class="w">Ej OK</span>'}</b></p>`:''}
@@ -642,8 +796,8 @@ async function shareProtocol(j){
     const pdf=makeProtocolPdf(html,window.jspdf.jsPDF);
     const file=new File([pdf.output('blob')],name,{type:'application/pdf'});
     const url=URL.createObjectURL(file), dialog=document.createElement('dialog');
-    dialog.style.cssText='max-width:440px;width:85%;padding:24px;border-radius:16px';
-    dialog.innerHTML='<h2>PDF klar</h2><p>Protokollet och fotona finns i samma PDF.</p><p><a target="_blank" rel="noopener" data-preview>Öppna PDF</a></p><p><a data-download>Spara PDF</a></p><button data-send>Dela PDF</button><button data-close>Stäng</button><p data-message role="status"></p>';
+    dialog.className='pdf';
+    dialog.innerHTML='<h2 style="margin-top:0">PDF klar</h2><p class="note">Protokollet och fotona finns i samma PDF.</p><button class="primary" data-send>Dela PDF</button><a class="secondary" target="_blank" rel="noopener" data-preview>Öppna PDF</a><a class="secondary" data-download>Spara PDF</a><button class="ghost" style="display:block;margin:4px auto 0" data-close>Stäng</button><p class="warn" data-message role="status"></p>';
     dialog.querySelector('[data-preview]').href=url;
     const download=dialog.querySelector('[data-download]');download.href=url;download.download=name;
     const send=dialog.querySelector('[data-send]');send.hidden=!(navigator.canShare&&navigator.canShare({files:[file]}));
@@ -683,12 +837,13 @@ function render(keep){
 }
 function newJob(){
   const j={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), created:new Date().toISOString(), status:'pågår',
-    fore:{nat:'TN-C 4-ledare'}, byte:{safe:{}}, efter:{}, kontroll:{fore:{},efter:{},note:{fore:{},efter:{}}}, borda:{}};
-  jobs.push(j); save(j); openJob(j.id,0);
+    order:{}, fore:{nat:'TN-C 4-ledare'}, byte:{safe:{}}, efter:{}, kontroll:{fore:{},efter:{},note:{fore:{},efter:{}}}, borda:{}, forberedelse:{}};
+  jobs.push(j); save(j); openJob(j.id,T_ORDER);
 }
 async function openJob(id,tab){
   st={view:'job',id,tab:0}; await loadPhotos(id);
-  const j=job(); st.tab = tab ?? ([1,2,3].find(i=>!tabDone(j,i)) ?? 4);
+  const j=job();
+  st.tab = tab ?? (j.status==='planerad' ? T_INFOR : j.status==='klar' ? T_PROT : ([T_FORE,T_BYTE,T_EFTER].find(i=>!tabDone(j,i)) ?? T_PROT));
   render();
 }
 function openBorda(fromJob){
@@ -699,24 +854,26 @@ function openBorda(fromJob){
 
 $app.addEventListener('input',e=>{
   const t=e.target;
-  if(t.dataset.q){ st.q=t.value; document.getElementById('jl').innerHTML=jobList(); return; }
+  if(t.dataset.q){ L.q=t.value; document.getElementById('jl').innerHTML=jobList(); return; }
   if(t.dataset.b){ bt[t.dataset.b]=t.value; const o=document.getElementById('btout'); const tmp=document.createElement('div'); tmp.innerHTML=vBorda(); o.innerHTML=tmp.querySelector('#btout').innerHTML; return; }
   const k=t.dataset.k; if(!k) return;
-  const j=job(); set(j,k,t.value); save(j);
+  const j=job(); set(j,k,t.value); save(j,/^(fore|byte|efter|kontroll)\./.test(k)&&k!=='fore.placering'&&k!=='fore.ean'&&k!=='fore.adress');
+  if(k==='forberedelse.telefon'){ const c=document.getElementById('callbtn'), h=telHref(t.value); if(c){ c.href=h||'#'; c.classList.toggle('off2',!h); } }
+  if(k==='forberedelse.epost'){ const c=document.getElementById('mailbtn'), ok=t.value.includes('@'); if(c){ c.href=ok?'mailto:'+t.value.trim():'#'; c.classList.toggle('off2',!ok); } }
   if(k==='byte.ratio'||k==='fore.ratio'){ const w=document.getElementById('rw'); if(w) w.innerHTML=orderWarn(j)+ratioWarn(j)+sakWarn(j,'byte'); const w2=document.getElementById('sw-fore'); if(w2) w2.innerHTML=sakWarn(j,'fore'); }
   if(k.startsWith('efter.r')){ const r=REGS.find(x=>'efter.'+x.k===k), el=document.getElementById('d-'+r.k); const fv=num(j.fore[r.k]), ev=num(t.value), d=fv!=null&&ev!=null?ev-fv:null; el.className=d!=null&&d<0?'acc':''; el.textContent=diffText(d,r.u); }
 });
 $app.addEventListener('change',async e=>{
   const t=e.target;
-  if(t.tagName==='SELECT'&&t.dataset.k){ const j=job(); set(j,t.dataset.k,t.value); save(j); render(true); return; }
+  if(t.tagName==='SELECT'&&t.dataset.k){ const j=job(); set(j,t.dataset.k,t.value); save(j,true); render(true); return; }
   if(t.tagName==='SELECT'&&t.dataset.b){ bt[t.dataset.b]=t.value; render(true); return; }
-  if(t.dataset.import&&t.files[0]){ const fl=t.files[0]; t.value=''; try{ await importOrders(fl); }catch(err){ alert('Kunde inte läsa filen ('+err.message+'). Prova att spara arket som CSV UTF-8 och välj den filen.'); } return; }
+  if(t.dataset.import&&t.files[0]){ const fl=t.files[0]; t.value=''; try{ await importOrders(fl); }catch(err){ console.error(err); alert('Kunde inte läsa filen ('+err.message+'). Prova att spara arket som .xlsx igen och välj den filen.'); } return; }
   const step=t.dataset.photo; if(!step||!t.files[0]) return;
   const j=job();
   try{
     const blob=await stampPhoto(t.files[0],j);
     const p={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), jobId:j.id, step, blob, t:new Date().toISOString()};
-    await dbPut('photos',p); photoUrls[p.id]=URL.createObjectURL(blob); photoMeta.push({id:p.id,step,t:p.t});
+    save(j,step!=='forberedelse'); await dbPut('photos',p); photoUrls[p.id]=URL.createObjectURL(blob); photoMeta.push({id:p.id,step,t:p.t});
     flash('Foto sparat'); render(true);
   }catch(err){ flash('Kunde inte spara fotot'); }
 });
@@ -727,21 +884,21 @@ $app.addEventListener('click',async e=>{
   if(a==='open') return openJob(b.dataset.id);
   if(a==='home'){ st={view:'list'}; return render(); }
   if(a==='tab'){ st.tab=+b.dataset.s; return render(); }
-  if(a==='next'){ st.tab=Math.min(4,st.tab+1); return render(); }
-  if(a==='stamp'){ set(j,b.dataset.p,new Date().toISOString()); save(j); return render(true); }
-  if(a==='safe'){ j.byte.safe[b.dataset.i]=!j.byte.safe[b.dataset.i]; save(j); return render(true); }
-  if(a==='rot'){ j.forberedelse=j.forberedelse||{}; j.forberedelse.rot=!j.forberedelse.rot; save(j); return render(true); }
+  if(a==='next'){ st.tab=Math.min(T_PROT,st.tab+1); return render(); }
+  if(a==='seg'){ L.seg=b.dataset.s; L.q=''; return render(); }
+  if(a==='matare'){ j.byte.bytt=b.dataset.v==='1'; save(j,true); return render(true); }
+  if(a==='stamp'){ set(j,b.dataset.p,new Date().toISOString()); save(j,true); return render(true); }
+  if(a==='safe'){ j.byte.safe[b.dataset.i]=!j.byte.safe[b.dataset.i]; save(j,true); return render(true); }
   if(a==='k2'){ const ph=b.dataset.ph, r=K2.find(x=>x.id===b.dataset.k), kk=j.kontroll[ph]=j.kontroll[ph]||{}, cur=kv(kk,r), nx=cur==='ok'?'fel':cur==='fel'?null:'ok';
-    r.c.forEach(c=>delete kk[r.id+'.'+c]); if(nx) kk[r.id]=nx; else delete kk[r.id]; save(j); return render(true); }
+    r.c.forEach(c=>delete kk[r.id+'.'+c]); if(nx) kk[r.id]=nx; else delete kk[r.id]; save(j,true); return render(true); }
   if(a==='delphoto'){ if(!confirm('Ta bort fotot?')) return; await dbDel('photos',b.dataset.id); URL.revokeObjectURL(photoUrls[b.dataset.id]); delete photoUrls[b.dataset.id]; photoMeta=photoMeta.filter(p=>p.id!==b.dataset.id); return render(true); }
   if(a==='borda') return openBorda(false);
   if(a==='borda-job') return openBorda(true);
-  if(a==='back-job'){ st={view:'job',id:st.id,tab:2}; return render(); }
+  if(a==='back-job'){ st={view:'job',id:st.id,tab:T_BYTE}; return render(); }
   if(a==='borda-save'){ const c=bCalc(); if(!c){ flash('Fyll i kabellängd och trafons max-börda'); return; }
-    j.borda.saved={...bt,tot:c.tot,ok:c.ok}; if(bt.min) j.byte.bmin=bt.min; if(bt.max) j.byte.bmax=bt.max; save(j); st={view:'job',id:j.id,tab:2}; flash('Börda sparad i protokollet'); return render(); }
+    j.borda.saved={...bt,tot:c.tot,ok:c.ok}; if(bt.min) j.byte.bmin=bt.min; if(bt.max) j.byte.bmax=bt.max; save(j,true); st={view:'job',id:j.id,tab:T_BYTE}; flash('Börda sparad i protokollet'); return render(); }
   if(a==='share') return shareProtocol(j);
-  if(a==='useorder'){ j.byte.ratio=j.order.newRatio; save(j); return render(true); }
-  if(a==='bytt'){ j.byte.bytt=!j.byte.bytt; save(j); return render(true); }
+  if(a==='useorder'){ j.byte.ratio=j.order.newRatio; save(j,true); return render(true); }
   if(a==='copyrow'){ const row=excelRow(j), ok=copyText(row,excelCells(j)), filled=excelCells(j).filter(x=>x!=='-').length;
     document.getElementById('rowprev').innerHTML=rowPreview(excelCells(j));
     if(ok){ flash(`Kopierat, ${filled} av 15 celler`); return; }
@@ -750,7 +907,7 @@ $app.addEventListener('click',async e=>{
   if(a==='sharerow'){ const row=excelRow(j); try{ await navigator.share({text:row}); }catch(err){} return; }
   if(a==='clearplanned'){ const n=jobs.filter(x=>x.status==='planerad').length; if(!confirm(`Ta bort ${n} uppdrag som inte är påbörjade? Påbörjade och klara byten påverkas inte.`)) return;
     for(const x of jobs.filter(x=>x.status==='planerad')) await dbDel('jobs',x.id); jobs=jobs.filter(x=>x.status!=='planerad'); return render(); }
-  if(a==='finish'){ j.status=j.status==='klar'?'pågår':'klar'; save(j); return render(true); }
+  if(a==='finish'){ j.status=j.status==='klar'?'pågår':'klar'; if(j.status==='klar') j.done=new Date().toISOString(); save(j); flash(j.status==='klar'?'Flyttat till Klara':'Flyttat till Pågående'); return render(true); }
   if(a==='delete'){ const n=(await photosOf(j.id)).length, namn=j.fore.adress||j.fore.ean||'detta byte';
     const msg=j.status==='klar'?`Radera ${namn} och ${n} foton? Går inte att ångra. Har du skickat protokollet?`:`Radera ${namn}${n?` och ${n} foton`:''}? Går inte att ångra.`;
     if(!confirm(msg)) return;
@@ -764,6 +921,7 @@ window.addEventListener('offline',()=>render(true));
 (async()=>{
   try{
     DB=await openDB(); jobs=await dbAll('jobs');
+    for(const j of jobs) if(normalize(j)) await dbPut('jobs',j);
     if(navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{});
     render();
   }catch(e){ $app.innerHTML='<p class="warn">Telefonens lagring gick inte att öppna. Stäng privat surfläge och försök igen.</p>'; }

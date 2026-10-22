@@ -1,5 +1,5 @@
 // Höj versionen när du laddar upp nya filer, så hämtar telefonen uppdateringen.
-const CACHE = 'mtbyte-v17-pdf';
+const CACHE = 'mtbyte-v18-struktur';
 const FILES = ['./', './index.html', './jspdf.umd.min.js', './protocol-pdf.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
