@@ -284,6 +284,60 @@ function sel(label,p,opts){
   const v=get(job(),p);
   return `<label class="f"><span>${label}</span><select data-k="${p}">${opts.map(o=>`<option ${o===v?'selected':''}>${o}</option>`).join('')}</select></label>`;
 }
+/* Streckkod: mätarnummer (16 siffror, 734015…) och terminalnummer (t.ex. NA16ET…). Läses offline i telefonen. */
+const last6=s=>String(s||'').slice(-6);
+function orderMeter(j){ const r=(j.order&&j.order.matarnrRaw)||''; return (r.match(/\d{6,}/)||[''])[0]; }
+function scanBox(j,w){
+  const lbl=w==='fore'?'Skanna mätarens streckkod':'Skanna nya mätarens streckkod';
+  return `<label class="camera">${ICON.cam}<span>${lbl}</span><input type="file" accept="image/*" capture="environment" data-scan="${w}"></label><div id="scan-${w}">${scanStatus(j,w)}</div>`;
+}
+function scanStatus(j,w){
+  if(w==='byte'){ const s=j.byte.nyttnrScan; return s?`<p class="note">✅ Inläst ny mätare …${esc(last6(s))}${stripNr(j.byte.nyttnr)!==s?' – skiljer sig från fältet ovan':''}</p>`:''; }
+  const s=j.fore.matarnrScan; if(!s) return '<p class="note">Fota mätaren rakt framifrån så att streckkoden under displayen syns. Terminalnumret kräver närbild av modulens etikett.</p>';
+  const o=orderMeter(j), cur=stripNr(j.fore.matarnr);
+  if(o&&o!==s) return `<p class="warn">⚠️ FEL MÄTARE? Fotot: …${esc(last6(s))}. Ordern: …${esc(last6(o))}. Kontrollera att du står vid rätt anläggning.</p>`;
+  if(cur&&cur!==s) return `<p class="warn">⚠️ Fotot: …${esc(last6(s))}, fältet: …${esc(last6(cur))}.</p>`;
+  return `<p class="note" style="color:var(--ok,#3a3);font-weight:600">✅ Rätt mätare …${esc(last6(s))}${o?' (stämmer med ordern)':''}</p>`;
+}
+let zxReady=null;
+function loadZX(){
+  if(zxReady) return zxReady;
+  zxReady=new Promise((res,rej)=>{ const sc=document.createElement('script'); sc.src='zxing-reader.js';
+    sc.onload=()=>{ ZXingWASM.prepareZXingModule({overrides:{locateFile:(path,prefix)=>path.endsWith('.wasm')?new URL('zxing_reader.wasm',location.href).href:prefix+path}}); res(ZXingWASM); };
+    sc.onerror=()=>{ zxReady=null; rej(new Error('Kunde inte ladda streckkodsläsaren')); }; document.head.appendChild(sc); });
+  return zxReady;
+}
+async function scanBarcodes(file){
+  const ZX=await loadZX(), bmp=await createImageBitmap(file), found=new Set();
+  for(const W of [1800,2600,1200]){
+    const s=Math.min(1,W/Math.max(bmp.width,bmp.height)), c=document.createElement('canvas');
+    c.width=Math.round(bmp.width*s); c.height=Math.round(bmp.height*s);
+    const x=c.getContext('2d',{willReadFrequently:true}); x.drawImage(bmp,0,0,c.width,c.height);
+    const r=await ZX.readBarcodes(x.getImageData(0,0,c.width,c.height),{formats:['Code128','Code39','Code93','ITF','EAN13','DataMatrix','QRCode'],tryHarder:true,maxNumberOfSymbols:6});
+    r.forEach(b=>b.isValid!==false&&b.text&&found.add(b.text.trim()));
+    if([...found].some(isMeterNr)) break;
+  }
+  bmp.close&&bmp.close(); return [...found];
+}
+const isMeterNr=t=>/^734015\d{10}$/.test(t);
+const isTermNr=t=>/^[A-Z]{2}\d{2}[A-Z]{2}\d{5,}$/i.test(t);
+async function handleScan(w,file){
+  const j=job(); flash('Läser streckkod…');
+  let codes; try{ codes=await scanBarcodes(file); }catch(e){ console.error(e); alert('Streckkodsläsaren kunde inte startas. Öppna appen en gång med täckning så sparas den för offline.'); return; }
+  const m=codes.find(isMeterNr), t=codes.find(isTermNr), msg=[];
+  if(w==='fore'){
+    if(m){ const cur=stripNr(j.fore.matarnr); j.fore.matarnrScan=m;
+      if(!cur){ j.fore.matarnr=m; msg.push('Mätarnummer …'+last6(m)+' ifyllt'); }
+      else if(cur!==m){ if(confirm('⚠️ FEL MÄTARE?\n\nFotot: …'+last6(m)+'\nFältet: …'+last6(cur)+'\n\nOK = använd fotots nummer\nAvbryt = behåll fältet')){ j.fore.matarnr=m; msg.push('Mätarnummer ändrat'); } }
+      else msg.push('Rätt mätare …'+last6(m)); }
+    if(t){ if(!j.fore.terminal) j.fore.terminal=t; else if(j.fore.terminal!==t&&confirm('Terminalnummer i fotot: '+t+'\nI fältet: '+j.fore.terminal+'\n\nByt till fotots?')) j.fore.terminal=t; msg.push('Terminal '+t); }
+  } else {
+    if(m){ j.byte.nyttnrScan=m; if(!j.byte.nyttnr||confirm('Nytt mätarnummer i fotot: …'+last6(m)+'\nI fältet: …'+last6(j.byte.nyttnr)+'\n\nByt till fotots?')) j.byte.nyttnr=m; msg.push('Ny mätare …'+last6(m)); }
+    if(t){ if(!j.byte.terminal||(j.byte.terminal!==t&&confirm('Terminal i fotot: '+t+'\nI fältet: '+j.byte.terminal+'\n\nByt till fotots?'))) j.byte.terminal=t; msg.push('Terminal '+t); }
+  }
+  if(!m&&!t){ alert('Hittade ingen streckkod.\n\nFota rakt framifrån, lite närmare, utan reflex i plasten.'+(codes.length?'\n\nLästa koder: '+codes.join(', '):'')); return; }
+  save(j,true); render(true); flash(msg.join(' · '));
+}
 function photos(step,label){
   const list=photoMeta.filter(p=>p.step===step);
   return `<div class="photos">${list.map(p=>`<figure><img src="${photoUrls[p.id]}" alt="Foto ${esc(step)}"><button data-act="delphoto" data-id="${p.id}" aria-label="Ta bort foto">×</button></figure>`).join('')}</div>
@@ -466,7 +520,8 @@ function tFore(j){ return `${orderCard(j)}<h2>Anläggning</h2>
   <div class="ro"><span>EAN / anläggnings-ID</span><b>${esc(j.fore.ean||'Saknas – fyll i under Arbetsorder')}</b></div>
   ${sel('Nätsystem','fore.nat',['TN-C 4-ledare','TN-S 5-ledare'])}
   <div class="row2">${f('Mätarnummer (befintlig mätare)','fore.matarnr',{im:'numeric'})}${f('Omsättning gammal trafo','fore.ratio',{ph:'200/5'})}</div>
-  ${f('Plint','fore.plint',{ph:'t.ex. A1'})}
+  ${scanBox(j,'fore')}
+  <div class="row2">${f('Plint','fore.plint',{ph:'t.ex. A1'})}${f('Terminalnummer (sällan)','fore.terminal',{ph:'NA16ET…'})}</div>
   <label class="f"><span>Mätarsäkring på plats, A</span><select data-k="fore.sakring">${SAKR.map(v=>`<option value="${v}" ${v===(j.fore.sakring||'')?'selected':''}>${v?v+' A':'Välj'}</option>`).join('')}</select></label>
   <div id="sw-fore">${sakWarn(j,'fore')}</div>
   <h2>Mätarställning före</h2>
@@ -497,6 +552,7 @@ function tByte(j){
   <h2>Elmätare</h2>
   <div class="seg seg2"><button data-act="matare" data-v="0" class="${j.byte.bytt?'':'cur'}">Behålls</button><button data-act="matare" data-v="1" class="${j.byte.bytt?'cur':''}">Elmätaren byts</button></div>
   ${j.byte.bytt?`<div class="row2">${f('Nytt mätarnummer','byte.nyttnr',{im:'numeric'})}${f('Ny terminalnr','byte.terminal')}</div>
+  ${scanBox(j,'byte')}
   <p class="note">Nya mätarens startställning fylls i under Efter, skild från den gamla mätarens ställning.</p>`:'<p class="note">Vanligast. Samma mätare läses av före och efter.</p>'}
   <br><button class="secondary" data-act="borda-job">${bo?`Börda sparad: ${dec(bo.tot,2)} VA · ${bo.ok?'OK':'Ej OK'} · öppna`:'Kontrollera bördan'}</button><br>
   ${photos('byte','Fota ny trafo och märkskylt')}`;
@@ -928,6 +984,7 @@ $app.addEventListener('change',async e=>{
   if(t.tagName==='SELECT'&&t.dataset.k){ const j=job(); set(j,t.dataset.k,t.value); save(j,true); render(true); return; }
   if(t.tagName==='SELECT'&&t.dataset.b){ bt[t.dataset.b]=t.value; render(true); return; }
   if(t.dataset.import&&t.files[0]){ const fl=t.files[0]; t.value=''; try{ await importOrders(fl); }catch(err){ console.error(err); alert('Kunde inte läsa filen ('+err.message+'). Prova att spara arket som .xlsx igen och välj den filen.'); } return; }
+  if(t.dataset.scan&&t.files[0]){ const fl=t.files[0]; t.value=''; return handleScan(t.dataset.scan,fl); }
   const step=t.dataset.photo; if(!step||!t.files[0]) return;
   const j=job();
   try{
