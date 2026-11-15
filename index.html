@@ -76,6 +76,10 @@ dialog.pdf a{display:block;text-align:center;text-decoration:none}
 .tag.on{color:var(--accent)}
 label.f{display:block;margin:0 0 14px}
 label.f>span{display:block;color:var(--muted);font-size:13px;font-weight:600;margin-bottom:6px}
+div.f{margin:0 0 14px}div.f>span{display:block;color:var(--muted);font-size:13px;font-weight:600;margin-bottom:6px}
+.regrow{display:flex;gap:8px;align-items:stretch}.regrow input{flex:1;min-width:0}
+.rcam{display:flex;align-items:center;justify-content:center;width:54px;flex:0 0 54px;background:var(--elev);border-radius:8px;cursor:pointer}.rcam input{display:none}.rcam.has{outline:2px solid var(--acc,#f60)}
+.photos.rph{grid-template-columns:repeat(5,1fr);margin:6px 0 0}
 input,select,textarea{width:100%;background:var(--surface);color:var(--text);border:1px solid transparent;border-radius:6px;font:inherit;font-weight:500;font-size:17px;padding:13px 14px;-webkit-appearance:none;appearance:none}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--text)}
 input::placeholder{color:var(--dim)}
@@ -339,7 +343,7 @@ async function handleScan(w,file){
   save(j,true); render(true); flash(msg.join(' · '));
 }
 function photos(step,label){
-  const list=photoMeta.filter(p=>p.step===step);
+  const list=photoMeta.filter(p=>p.step===step&&!p.reg);
   return `<div class="photos">${list.map(p=>`<figure><img src="${photoUrls[p.id]}" alt="Foto ${esc(step)}"><button data-act="delphoto" data-id="${p.id}" aria-label="Ta bort foto">×</button></figure>`).join('')}</div>
   <label class="camera">${ICON.cam}<span>${label}</span><input type="file" accept="image/*" capture="environment" data-photo="${step}"></label>`;
 }
@@ -348,8 +352,11 @@ function regFields(ph){
   return `<div class="regs">${REGS.map(r=>{
     const key=nyM?nk(r):r.k;
     const fv=num(j.fore[r.k]), ev=num(j[ph][key]), d=ph==='efter'&&!nyM&&fv!=null&&ev!=null?ev-fv:null;
-    return `<label class="f"><span>${r.o} ${r.t}, ${r.u}</span><input data-k="${ph}.${key}" value="${esc(j[ph][key])}" inputmode="decimal" autocomplete="off">
-    ${ph==='efter'&&!nyM?`<small id="d-${r.k}" class="${d!=null&&d<0?'acc':''}">${diffText(d,r.u)}</small>`:''}</label>`;
+    const reg=r.o+(nyM?' ny mätare':''), rp=photoMeta.filter(p=>p.step==='register-'+ph&&p.reg===reg);
+    return `<div class="f"><span>${r.o} ${r.t}, ${r.u}</span><div class="regrow"><input data-k="${ph}.${key}" value="${esc(j[ph][key])}" inputmode="decimal" autocomplete="off" aria-label="${r.o}">
+    <label class="rcam ${rp.length?'has':''}" aria-label="Fota ${r.o}">${ICON.cam}<input type="file" accept="image/*" capture="environment" data-photo="register-${ph}" data-reg="${reg}"></label></div>
+    ${rp.length?`<div class="photos rph">${rp.map(p=>`<figure><img src="${photoUrls[p.id]}" alt="Foto ${esc(reg)}"><button data-act="delphoto" data-id="${p.id}" aria-label="Ta bort foto">×</button></figure>`).join('')}</div>`:''}
+    ${ph==='efter'&&!nyM?`<small id="d-${r.k}" class="${d!=null&&d<0?'acc':''}">${diffText(d,r.u)}</small>`:''}</div>`;
   }).join('')}</div>`;
 }
 function diffText(d,u){ return d==null?'':d<0?`Lägre än före (${dec(d,1)} ${u}). Kontrollera avläsningen.`:`+${dec(d,1)} ${u} sedan före`; }
@@ -525,9 +532,9 @@ function tFore(j){ return `${orderCard(j)}<h2>Anläggning</h2>
   <label class="f"><span>Mätarsäkring på plats, A</span><select data-k="fore.sakring">${SAKR.map(v=>`<option value="${v}" ${v===(j.fore.sakring||'')?'selected':''}>${v?v+' A':'Välj'}</option>`).join('')}</select></label>
   <div id="sw-fore">${sakWarn(j,'fore')}</div>
   <h2>Mätarställning före</h2>
-  <p class="note">Primärvärden. Fota varje register när det visas på displayen.</p><br>
+  <p class="note">Primärvärden. Stega fram registret på displayen och tryck på kameran vid rätt fält.</p><br>
   ${regFields('fore')}
-  ${photos('register-fore','Fota register')}
+  ${photos('register-fore','Fota övrigt (t.ex. hela mätaren)')}
   <h2>Kontroll före byte</h2>
   <p class="note">Som du hittar anläggningen, innan du rör något. Ett tryck OK, två tryck Fel, tre tryck tomt.</p>
   <p class="note" id="kc-fore">${kc(j,'fore')} av ${K2N} kontrollerade${kfel(j,'fore').length?`, ${kfel(j,'fore').length} med fel`:''}</p>
@@ -569,7 +576,7 @@ function tEfter(j){ return `<h2>Kontroll efter byte</h2>
   ${j.byte.bytt?`<h2>Startställning ny mätare</h2>
   <p class="note">Ny mätare ${esc(j.byte.nyttnr||'(nummer saknas under Byte)')}. Gamla mätarens ställning finns under Före.</p><br>`:'<h2>Mätarställning efter</h2>'}
   ${regFields('efter')}
-  ${photos('register-efter','Fota register')}
+  ${photos('register-efter','Fota övrigt (t.ex. hela mätaren)')}
   ${f('Nya plombnummer','efter.plomb')}
   <label class="f"><span>Kommentar</span><textarea data-k="efter.kommentar">${esc(j.efter.kommentar)}</textarea></label>
   ${photos('efter','Fota anläggningen efter')}`; }
@@ -856,7 +863,7 @@ async function importOrders(file){
 function blobToData(b){ return new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(b); }); }
 async function protocolHtml(j){
   const ph=await photosOf(j.id);
-  const imgs=await Promise.all(ph.sort((a,b)=>a.t.localeCompare(b.t)).map(async p=>({step:p.step,t:p.t,src:await blobToData(p.blob)})));
+  const imgs=await Promise.all(ph.sort((a,b)=>a.t.localeCompare(b.t)).map(async p=>({step:p.reg?'Register '+p.reg+' ('+(p.step==='register-fore'?'före':'efter')+')':p.step,t:p.t,src:await blobToData(p.blob)})));
   const mk=v=>v==='ok'?'OK':v==='fel'?'<b style="color:#c40">FEL</b>':'–';
   const kf=j.kontroll.fore||{}, ke=j.kontroll.efter||{}, nt=j.kontroll.note;
   const rows=K2.map(r=>`<tr><td>${r.t}${nt.fore[r.id]?`<br><i>Före: ${esc(nt.fore[r.id])}</i>`:''}${nt.efter[r.id]?`<br><i>Efter: ${esc(nt.efter[r.id])}</i>`:''}</td>
@@ -925,14 +932,14 @@ async function shareProtocol(j){
 }
 
 /* ================= Foton ================= */
-function stampPhoto(file,j){
+function stampPhoto(file,j,reg=''){
   return new Promise((res,rej)=>{
     const img=new Image(), url=URL.createObjectURL(file);
     img.onload=()=>{
       const m=1600, s=Math.min(1,m/Math.max(img.width,img.height)), c=document.createElement('canvas');
       c.width=Math.round(img.width*s); c.height=Math.round(img.height*s);
       const x=c.getContext('2d'); x.drawImage(img,0,0,c.width,c.height);
-      const txt=`${new Date().toLocaleString('sv-SE')}  ${j.fore.ean||''}`, fs=Math.max(16,Math.round(c.width/40));
+      const txt=`${new Date().toLocaleString('sv-SE')}  ${j.fore.ean||''}${reg?'  '+reg:''}`, fs=Math.max(16,Math.round(c.width/40));
       x.font=`${fs}px sans-serif`; x.fillStyle='rgba(0,0,0,.6)'; x.fillRect(0,c.height-fs*1.8,c.width,fs*1.8);
       x.fillStyle='#fff'; x.fillText(txt,fs*.6,c.height-fs*.6);
       URL.revokeObjectURL(url); c.toBlob(b=>b?res(b):rej(),'image/jpeg',0.72);
@@ -942,7 +949,7 @@ function stampPhoto(file,j){
 }
 async function loadPhotos(id){
   Object.values(photoUrls).forEach(u=>URL.revokeObjectURL(u)); photoUrls={};
-  photoMeta=(await photosOf(id)).map(p=>{ photoUrls[p.id]=URL.createObjectURL(p.blob); return {id:p.id,step:p.step,t:p.t}; });
+  photoMeta=(await photosOf(id)).map(p=>{ photoUrls[p.id]=URL.createObjectURL(p.blob); return {id:p.id,step:p.step,t:p.t,reg:p.reg}; });
 }
 
 /* ================= Render och händelser ================= */
@@ -988,10 +995,11 @@ $app.addEventListener('change',async e=>{
   const step=t.dataset.photo; if(!step||!t.files[0]) return;
   const j=job();
   try{
-    const blob=await stampPhoto(t.files[0],j);
-    const p={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), jobId:j.id, step, blob, t:new Date().toISOString()};
-    save(j,step!=='forberedelse'); await dbPut('photos',p); photoUrls[p.id]=URL.createObjectURL(blob); photoMeta.push({id:p.id,step,t:p.t});
-    flash('Foto sparat'); render(true);
+    const fl=t.files[0], reg=t.dataset.reg||''; t.value='';
+    const blob=await stampPhoto(fl,j,reg);
+    const p={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), jobId:j.id, step, blob, t:new Date().toISOString()}; if(reg) p.reg=reg;
+    save(j,step!=='forberedelse'); await dbPut('photos',p); photoUrls[p.id]=URL.createObjectURL(blob); photoMeta.push({id:p.id,step,t:p.t,reg:p.reg});
+    flash(reg?'Foto sparat för '+reg:'Foto sparat'); render(true);
   }catch(err){ flash('Kunde inte spara fotot'); }
 });
 $app.addEventListener('click',async e=>{
