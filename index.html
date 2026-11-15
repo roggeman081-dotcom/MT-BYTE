@@ -323,12 +323,15 @@ async function scanBarcodes(file){
   }
   bmp.close&&bmp.close(); return [...found];
 }
-const isMeterNr=t=>/^734015\d{10}$/.test(t);
+/* Kaifa-mätare har 16 siffror (734015…/764015…), men andra mätartyper har kortare nummer. */
+const isMeterNr=t=>/^\d{7,18}$/.test(t);
 const isTermNr=t=>/^[A-Z]{2}\d{2}[A-Z]{2}\d{5,}$/i.test(t);
 async function handleScan(w,file){
   const j=job(); flash('Läser streckkod…');
   let codes; try{ codes=await scanBarcodes(file); }catch(e){ console.error(e); alert('Streckkodsläsaren kunde inte startas. Öppna appen en gång med täckning så sparas den för offline.'); return; }
-  const m=codes.find(isMeterNr), t=codes.find(isTermNr), msg=[];
+  /* Välj i första hand koden som matchar ordern, sedan 16-siffriga mätarnummer, sist andra sifferkoder (t.ex. plomber). */
+  const known=(w==='fore'?[orderMeter(j),stripNr(j.fore.matarnr)]:[stripNr(j.byte.nyttnr)]).filter(Boolean);
+  const m=codes.find(c=>known.includes(c))||codes.find(c=>/^\d{16}$/.test(c))||codes.find(isMeterNr), t=codes.find(isTermNr), msg=[];
   if(w==='fore'){
     if(m){ const cur=stripNr(j.fore.matarnr); j.fore.matarnrScan=m;
       if(!cur){ j.fore.matarnr=m; msg.push('Mätarnummer …'+last6(m)+' ifyllt'); }
@@ -359,7 +362,7 @@ function regFields(ph){
     ${ph==='efter'&&!nyM?`<small id="d-${r.k}" class="${d!=null&&d<0?'acc':''}">${diffText(d,r.u)}</small>`:''}</div>`;
   }).join('')}</div>`;
 }
-function diffText(d,u){ return d==null?'':d<0?`Lägre än före (${dec(d,1)} ${u}). Kontrollera avläsningen.`:`+${dec(d,1)} ${u} sedan före`; }
+function diffText(d,u){ return d==null?'':d<0?`Lägre än före (${dec(d,3)} ${u}). Kontrollera avläsningen.`:`+${dec(d,3)} ${u} sedan före`; }
 function checklist(j,ph){
   const k=j.kontroll[ph]||{}, notes=j.kontroll.note[ph]||{}, was=ph==='efter'?(j.kontroll.fore||{}):{};
   return K2.map(r=>{
