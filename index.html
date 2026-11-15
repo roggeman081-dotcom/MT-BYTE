@@ -326,13 +326,21 @@ function schema(j){
 function bokSort(j){ const b=(j.forberedelse||{}).bokad||''; const m=String(b).match(/(\d{4})-(\d{2})-(\d{2})/); return m?m[0]:'9999'; }
 function searchText(j){ const o=j.order||{}, fb=j.forberedelse||{};
   return [j.fore.adress,j.fore.ean,o.ao,j.fore.matarnr,o.matarnrRaw,fb.kontakt,fb.telefon,fb.nyckel,o.kund,o.uppdrag,j.fore.placering].join(' ').toLowerCase(); }
+function lastImportText(){try{const x=JSON.parse(localStorage.getItem('mtbyte-last-import')||'null');return x?'<p class="note">Senast importerad: '+esc(x.name)+' · '+esc(new Date(x.time).toLocaleString('sv-SE'))+'</p>':'';}catch{return '';}}
 function vList(){
   const off=!navigator.onLine?'<span class="off">Offline – allt sparas i telefonen</span>':'';
   const n={planerad:0,'pågår':0,klar:0}; jobs.forEach(j=>n[j.status]=(n[j.status]||0)+1);
   if(!L.seg) L.seg = n['pågår']?'pågår':n.planerad?'planerad':'pågår';
   return `<div class="hero"><h1>Trafobyten</h1>${off}</div>
   <p class="count">${jobs.length?`${jobs.length} jobb totalt`:'Inga byten än'}</p>
-  <div class="menu"><label class="mbtn">${ICON.imp}Importera arbetsorder<input type="file" accept=".xlsx,.csv,.txt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-import="1" hidden></label><button data-act="borda">${ICON.calc}Börda</button></div>
+  <details class="card" id="mobile-import"><summary style="padding:14px;cursor:pointer;font-weight:600">${ICON.imp} Hämta arbetsorder från fil / OneDrive</summary>
+  <p>Välj <strong>Arbetsorder LiRo (2).xlsx</strong> i <strong>OneDrive → Projekt 2026</strong>.</p>
+  <label class="camera"><span>Välj Excel-fil och importera</span><input type="file" accept=".xlsx,.csv,.txt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-import="1"></label>
+  <p class="note">På iPhone: välj Bläddra → OneDrive. Om OneDrive saknas, aktivera det under Platser i appen Filer. På Android: välj OneDrive i filväljaren, eller spara en kopia från OneDrive till Hämtade filer och välj den.</p>
+  <p class="note">Gröna rader hoppas över. Befintliga uppgifter skrivs inte över. Välj filen igen när arbetsordern har uppdaterats; detta är ingen automatisk OneDrive-synkning.</p>
+  ${lastImportText()}
+  </details>
+  <div class="menu"><button data-act="borda">${ICON.calc}Börda</button></div>
   <button class="primary" data-act="new">Starta nytt byte</button>
   <input type="search" data-q="1" value="${esc(L.q||'')}" placeholder="Sök adress, EAN, order, mätarnr, kontakt" style="margin:14px 0 4px" aria-label="Sök jobb">
   <div class="seg" role="tablist">${['planerad','pågår','klar'].map(s=>`<button role="tab" data-act="seg" data-s="${s}" class="${L.seg===s?'cur':''}">${s==='planerad'?'Planerade':s==='pågår'?'Pågående':'Klara'} ${n[s]||0}</button>`).join('')}</div>
@@ -732,6 +740,7 @@ async function importOrders(file){
     for(const [k,val] of Object.entries(vals)) if(val) set(j,k,val);
     jobs.push(j); await dbPut('jobs',j); added++;
   }
+  try{localStorage.setItem('mtbyte-last-import',JSON.stringify({name:file.name,time:new Date().toISOString()}));}catch{}
   L.seg='planerad'; render();
   alert(`${added} nya jobb importerade.\n${filled} befintliga jobb kompletterade (inget skrevs över).\n${done} ${colorMode?'grönmarkerade (utförda)':'utförda'} rader hoppades över.\n${dup} fanns redan eller förekom två gånger.`);
 }

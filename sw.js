@@ -1,5 +1,5 @@
 // Höj versionen när du laddar upp nya filer, så hämtar telefonen uppdateringen.
-const CACHE = 'mtbyte-v18-struktur';
+const CACHE = 'mtbyte-v21-mobile-import';
 const FILES = ['./', './index.html', './jspdf.umd.min.js', './protocol-pdf.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -27,3 +27,4 @@ self.addEventListener('fetch', e => {
     })
   );
 });
+
