@@ -326,6 +326,53 @@ function schema(j){
 function bokSort(j){ const b=(j.forberedelse||{}).bokad||''; const m=String(b).match(/(\d{4})-(\d{2})-(\d{2})/); return m?m[0]:'9999'; }
 function searchText(j){ const o=j.order||{}, fb=j.forberedelse||{};
   return [j.fore.adress,j.fore.ean,o.ao,j.fore.matarnr,o.matarnrRaw,fb.kontakt,fb.telefon,fb.nyckel,o.kund,o.uppdrag,j.fore.placering].join(' ').toLowerCase(); }
+
+function duplicateAddress(v){return String(v||'').toLocaleLowerCase('sv-SE').replace(/[^a-zåäö0-9]/g,'');}
+function possibleDuplicate(a,b){
+  if(a.status==='klar'||b.status==='klar')return false;
+  const ae=stripNr(a.fore.ean),be=stripNr(b.fore.ean);
+  if(ae&&be)return ae===be;
+  const ad=duplicateAddress(a.fore.adress),bd=duplicateAddress(b.fore.adress);
+  return !!ad&&ad===bd;
+}
+function mergeJobPreview(target,source){
+ const result=structuredClone(target),conflicts=[];
+ const skip=new Set(['id','created','status','movedFromOngoing']);
+ function merge(dst,src,path=''){
+  for(const [k,value] of Object.entries(src||{})){
+   if(!path&&skip.has(k))continue;
+   if(value==null||value==='')continue;
+   const key=path?path+'.'+k:k;
+   if(typeof value==='object'&&!Array.isArray(value)){if(dst[k]==null)dst[k]={};if(typeof dst[k]==='object')merge(dst[k],value,key);continue;}
+   if(dst[k]==null||dst[k]===''){dst[k]=value;continue;}
+   if(JSON.stringify(dst[k])!==JSON.stringify(value))conflicts.push(key+': behållet '+String(dst[k])+' | från andra jobbet: '+String(value));
+  }
+ }
+ merge(result,source);result.status='planerad';result.movedFromOngoing=true;
+ result.forberedelse=result.forberedelse||{};
+ const note='Sammanfogat med '+(source.fore.adress||'jobb')+' (arbetsorder '+((source.order||{}).ao||'saknas')+').'+(conflicts.length?'\nUppgifter som skiljde sig:\n'+conflicts.join('\n'):'');
+ result.forberedelse.notering=[result.forberedelse.notering,note].filter(Boolean).join('\n\n');
+ return {result,conflicts};
+}
+function reviewDuplicates(){
+ const pairs=[];for(let i=0;i<jobs.length;i++)for(let k=i+1;k<jobs.length;k++)if(possibleDuplicate(jobs[i],jobs[k]))pairs.push([jobs[i],jobs[k]]);
+ const d=document.createElement('dialog');d.style.cssText='width:90%;max-width:600px;max-height:85vh;overflow:auto;padding:20px';
+ const title=document.createElement('h2');title.textContent='Möjliga dubbletter';d.appendChild(title);
+ const info=document.createElement('p');info.textContent=pairs.length?'Kontrollera att det gäller samma arbete. Samma adress eller EAN kan ha flera arbetsorder. Inget slås ihop utan ditt val.':'Inga säkra förslag hittades. Jobb med olika EAN eller klara jobb slås inte ihop.';d.appendChild(info);
+ for(const [a,b] of pairs){
+  const box=document.createElement('div');box.style.cssText='border-top:1px solid #888;padding:12px 0';
+  const text=document.createElement('p');text.textContent=[a,b].map(j=>(j.fore.adress||'Adress saknas')+' — AO '+((j.order||{}).ao||'saknas')+' — EAN '+(j.fore.ean||'saknas')+' — mätare '+(j.fore.matarnr||'saknas')).join('\n');text.style.whiteSpace='pre-wrap';box.appendChild(text);
+  const preview=mergeJobPreview(a,b),details=document.createElement('details'),sum=document.createElement('summary');sum.textContent='Visa uppgifter som skiljer sig ('+preview.conflicts.length+')';details.appendChild(sum);const pre=document.createElement('p');pre.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere';pre.textContent=preview.conflicts.join('\n')||'Tomma fält kompletteras. Bilder behåller sina steg.';details.appendChild(pre);box.appendChild(details);
+  const button=document.createElement('button');button.textContent='Samma arbete – slå ihop till Planerade';button.className='secondary';button.onclick=async()=>{
+   if(!confirm('Slå ihop dessa två jobb? Uppgifter som skiljer sig sparas i Övriga anteckningar under Inför arbetet. Alla bilder behålls under sina befintliga steg.'))return;
+   button.disabled=true;clearTimeout(saveT);
+   const merged=mergeJobPreview(a,b).result,updated=jobs.filter(j=>j.id!==b.id).map(j=>j.id===a.id?merged:j);
+   try{await new Promise((resolve,reject)=>{const t=DB.transaction(['jobs','photos'],'readwrite'),store=t.objectStore('jobs');for(const j of updated)store.put(j);store.delete(b.id);const photos=t.objectStore('photos'),req=photos.index('job').openCursor(IDBKeyRange.only(b.id));req.onsuccess=()=>{const c=req.result;if(c){const p=c.value;p.jobId=a.id;c.update(p);c.continue();}};t.oncomplete=resolve;t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error);});jobs=updated;d.close();st={view:'list'};L.seg='planerad';L.q='';render();flash('Jobben är sammanslagna. Bilder och anteckningar är kvar.');}catch(e){button.disabled=false;alert('Kunde inte spara sammanslagningen. Jobben har inte slagits ihop.');}
+  };box.appendChild(button);d.appendChild(box);
+ }
+ const close=document.createElement('button');close.textContent='Stäng utan fler ändringar';close.onclick=()=>d.close();d.appendChild(close);d.onclose=()=>d.remove();document.body.appendChild(d);d.showModal();
+}
+
 function lastImportText(){try{const x=JSON.parse(localStorage.getItem('mtbyte-last-import')||'null');return x?'<p class="note">Senast importerad: '+esc(x.name)+' · '+esc(new Date(x.time).toLocaleString('sv-SE'))+'</p>':'';}catch{return '';}}
 function vList(){
   const off=!navigator.onLine?'<span class="off">Offline – allt sparas i telefonen</span>':'';
@@ -340,12 +387,13 @@ function vList(){
   <p class="note">Gröna rader hoppas över. Befintliga uppgifter skrivs inte över. Välj filen igen när arbetsordern har uppdaterats; detta är ingen automatisk OneDrive-synkning.</p>
   ${lastImportText()}
   </details>
-  <div class="menu"><button data-act="borda">${ICON.calc}Börda</button></div>
+  <div class="menu"><button data-act="duplicates">Kontrollera dubbletter</button><button data-act="borda">${ICON.calc}Börda</button></div>
   <button class="primary" data-act="new">Starta nytt byte</button>
   <input type="search" data-q="1" value="${esc(L.q||'')}" placeholder="Sök adress, EAN, order, mätarnr, kontakt" style="margin:14px 0 4px" aria-label="Sök jobb">
   <div class="seg" role="tablist">${['planerad','pågår','klar'].map(s=>`<button role="tab" data-act="seg" data-s="${s}" class="${L.seg===s?'cur':''}">${s==='planerad'?'Planerade':s==='pågår'?'Pågående':'Klara'} ${n[s]||0}</button>`).join('')}</div>
+  ${n['pågår']?`<button class="secondary" data-act="moveplanned">Flytta pågående till Planerade (${n['pågår']})</button>`:''}
   <div id="jl">${jobList()}</div>
-  ${L.seg==='planerad'&&n.planerad?`<button class="ghost" data-act="clearplanned">Rensa ${n.planerad} ej påbörjade uppdrag</button>`:''}`;
+  ${L.seg==='planerad'&&n.planerad?`<button class="ghost" data-act="clearplanned">Rensa planerade uppdrag</button>`:''}`;
 }
 function jobRow(j){
   const o=j.order||{}, fb=j.forberedelse||{};
@@ -731,7 +779,7 @@ async function importOrders(file){
     const ex=jobs.find(x=>stripNr(x.fore.ean)===ean && ((ao&&x.order&&x.order.ao===ao)||(!(x.order&&x.order.ao))));
     if(ex){
       normalize(ex); ex.order=ex.order||{}; let n=0;
-      for(const [k,val] of Object.entries(vals)){ const cur=get(ex,k); if(val&&(cur==null||String(cur).trim()==='')){ set(ex,k,val); n++; } }
+      for(const [k,val] of Object.entries(vals)){ const cur=get(ex,k); if(val&&(cur==null||String(cur).trim()==='')){ set(ex,k,val); n++; } else if(val&&String(cur).trim()!==String(val).trim()){ const note='Exceluppgift som skiljer sig ('+k+'): '+val+' | Behållet i jobbet: '+cur; ex.forberedelse=ex.forberedelse||{}; if(!(ex.forberedelse.notering||'').includes(note)){ex.forberedelse.notering=[ex.forberedelse.notering,note].filter(Boolean).join('\n');n++;} } }
       if(n){ await dbPut('jobs',ex); filled++; } else dup++;
       continue;
     }
@@ -889,6 +937,7 @@ $app.addEventListener('change',async e=>{
 $app.addEventListener('click',async e=>{
   const b=e.target.closest('[data-act]'); if(!b) return;
   const a=b.dataset.act, j=job();
+  if(a==='duplicates') return reviewDuplicates();
   if(a==='new') return newJob();
   if(a==='open') return openJob(b.dataset.id);
   if(a==='home'){ st={view:'list'}; return render(); }
@@ -914,7 +963,22 @@ $app.addEventListener('click',async e=>{
     try{ await navigator.clipboard.writeText(row); flash(`Kopierat, ${filled} av 15 celler`); }
     catch(err){ flash('Kunde inte kopiera. Använd Dela.'); } return; }
   if(a==='sharerow'){ const row=excelRow(j); try{ await navigator.share({text:row}); }catch(err){} return; }
-  if(a==='clearplanned'){ const n=jobs.filter(x=>x.status==='planerad').length; if(!confirm(`Ta bort ${n} uppdrag som inte är påbörjade? Påbörjade och klara byten påverkas inte.`)) return;
+  if(a==='moveplanned'){
+    const moving=jobs.filter(x=>x.status==='pågår');
+    if(!moving.length) return;
+    if(!confirm('Flytta '+moving.length+' pågående jobb till Planerade? Alla uppgifter, kontroller och bilder behålls. Klara jobb påverkas inte.')) return;
+    clearTimeout(saveT);
+    const snapshots=jobs.map(x=>x.status==='pågår'?{...x,status:'planerad',movedFromOngoing:true}:x);
+    try{
+      await tx('jobs','readwrite',store=>{for(const x of snapshots)store.put(x);});
+      for(const x of moving){x.status='planerad';x.movedFromOngoing=true;}
+      L.seg='planerad';L.q='';render();flash(moving.length+' jobb flyttade till Planerade');
+    }catch(e){flash('Flytten kunde inte sparas. Försök igen.');}
+    return;
+  }
+  if(a==='clearplanned'){
+    if(jobs.some(x=>x.status==='planerad'&&x.movedFromOngoing)){alert('Här finns tidigare pågående jobb med sparade uppgifter. Massrensning är därför avstängd. Radera endast enskilda jobb som du inte behöver.');return;}
+ const n=jobs.filter(x=>x.status==='planerad').length; if(!confirm(`Ta bort ${n} uppdrag som inte är påbörjade? Påbörjade och klara byten påverkas inte.`)) return;
     for(const x of jobs.filter(x=>x.status==='planerad')) await dbDel('jobs',x.id); jobs=jobs.filter(x=>x.status!=='planerad'); return render(); }
   if(a==='finish'){ j.status=j.status==='klar'?'pågår':'klar'; if(j.status==='klar') j.done=new Date().toISOString(); save(j); flash(j.status==='klar'?'Flyttat till Klara':'Flyttat till Pågående'); return render(true); }
   if(a==='delete'){ const n=(await photosOf(j.id)).length, namn=j.fore.adress||j.fore.ean||'detta byte';
