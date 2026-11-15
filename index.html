@@ -865,14 +865,14 @@ async function importOrders(file){
 function blobToData(b){ return new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(b); }); }
 async function protocolHtml(j){
   const ph=await photosOf(j.id);
-  const imgs=await Promise.all(ph.sort((a,b)=>a.t.localeCompare(b.t)).map(async p=>({step:p.reg?'Register '+p.reg+' ('+(p.step==='register-fore'?'före':'efter')+')':p.step,t:p.t,src:await blobToData(p.blob)})));
+  const imgs=await Promise.all(ph.sort((a,b)=>a.t.localeCompare(b.t)).map(async p=>({step:p.reg?'Register '+p.reg+' ('+(p.step==='register-fore'?'före':'efter')+')':({forberedelse:'Inför arbetet',fore:'Anläggningen före',byte:'Byte',efter:'Anläggningen efter','register-fore':'Register före','register-efter':'Register efter'}[p.step]||p.step),t:p.t,src:await blobToData(p.blob)})));
   const mk=v=>v==='ok'?'OK':v==='fel'?'<b style="color:#c40">FEL</b>':'–';
   const kf=j.kontroll.fore||{}, ke=j.kontroll.efter||{}, nt=j.kontroll.note;
   const rows=K2.map(r=>`<tr><td>${r.t}${nt.fore[r.id]?`<br><i>Före: ${esc(nt.fore[r.id])}</i>`:''}${nt.efter[r.id]?`<br><i>Efter: ${esc(nt.efter[r.id])}</i>`:''}</td>
     <td>${mk(kv(kf,r))}</td><td>${mk(kv(ke,r))}</td></tr>`).join('');
   const regs=j.byte.bytt
     ? REGS.map(r=>`<tr><td>${r.o} ${r.t}</td><td>${esc(j.fore[r.k]||'—')}</td><td>${esc(j.efter[nk(r)]||'—')}</td><td>${r.u}</td></tr>`).join('')
-    : REGS.map(r=>{const a=num(j.fore[r.k]),b=num(j.efter[r.k]);return `<tr><td>${r.o} ${r.t}</td><td>${esc(j.fore[r.k]||'—')}</td><td>${esc(j.efter[r.k]||'—')}</td><td>${a!=null&&b!=null?dec(b-a,1):'—'} ${r.u}</td></tr>`}).join('');
+    : REGS.map(r=>{const a=num(j.fore[r.k]),b=num(j.efter[r.k]);return `<tr><td>${r.o} ${r.t}</td><td>${esc(j.fore[r.k]||'—')}</td><td>${esc(j.efter[r.k]||'—')}</td><td>${a!=null&&b!=null?dec(b-a,3):'—'} ${r.u}</td></tr>`}).join('');
   const tr=(l,v)=>v?`<tr><td>${l}</td><td>${esc(v)}</td></tr>`:'';
   const o=j.order||{}, fb=j.forberedelse||{};
   const fF=kfel(j,'fore'), fE=kfel(j,'efter'), bo=j.borda&&j.borda.saved;
