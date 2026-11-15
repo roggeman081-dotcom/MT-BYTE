@@ -780,8 +780,8 @@ async function importOrders(file){
     if(ex){
       normalize(ex); ex.order=ex.order||{}; let n=0;
       for(const [k,val] of Object.entries(vals)){ const cur=get(ex,k); if(val&&(cur==null||String(cur).trim()==='')){ set(ex,k,val); n++; } else if(val&&String(cur).trim()!==String(val).trim()){ const note='Exceluppgift som skiljer sig ('+k+'): '+val+' | Behållet i jobbet: '+cur; ex.forberedelse=ex.forberedelse||{}; if(!(ex.forberedelse.notering||'').includes(note)){ex.forberedelse.notering=[ex.forberedelse.notering,note].filter(Boolean).join('\n');n++;} } }
-      /* Grön i Excel: ej påbörjat planerat jobb flyttas till Klara. Pågående jobb rörs inte. */
-      if(isDone&&ex.status==='planerad'&&!ex.movedFromOngoing){ ex.status='klar'; ex.excelKlar=true; ex.done=ex.done||new Date().toISOString(); n++; done++; }
+      /* Grön i Excel = klar. Jobbet flyttas till Klara; alla uppgifter, kontroller och bilder behålls. */
+      if(isDone&&ex.status!=='klar'){ ex.status='klar'; ex.excelKlar=true; ex.done=ex.done||new Date().toISOString(); n++; done++; }
       if(n){ await dbPut('jobs',ex); filled++; } else dup++;
       continue;
     }
