@@ -918,7 +918,8 @@ async function shareProtocol(j){
   try {
     const html=await protocolHtml(j);
     const name='trafobyte-'+(j.fore.ean||'utan-ean').replace(/\W/g,'')+'-'+j.created.slice(0,10)+'.pdf';
-    const pdf=makeProtocolPdf(html,window.jspdf.jsPDF);
+    let logo=null; try{ const r=await fetch('logo-pdf.png'); if(r.ok) logo={src:await blobToData(await r.blob()),w:329,h:267}; }catch(e){}
+    const pdf=makeProtocolPdf(html,window.jspdf.jsPDF,logo);
     const file=new File([pdf.output('blob')],name,{type:'application/pdf'});
     const url=URL.createObjectURL(file), dialog=document.createElement('dialog');
     dialog.className='pdf';

@@ -1,6 +1,6 @@
 // Höj versionen när du laddar upp nya filer, så hämtar telefonen uppdateringen.
-const CACHE = 'mtbyte-v27-ett-register';
-const FILES = ['./', './index.html', './jspdf.umd.min.js', './protocol-pdf.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './zxing-reader.js', './zxing_reader.wasm'];
+const CACHE = 'mtbyte-v28-pdf-logga';
+const FILES = ['./', './index.html', './jspdf.umd.min.js', './protocol-pdf.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './zxing-reader.js', './zxing_reader.wasm', './logo-pdf.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
