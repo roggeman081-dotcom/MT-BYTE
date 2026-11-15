@@ -1,5 +1,5 @@
 // Höj versionen när du laddar upp nya filer, så hämtar telefonen uppdateringen.
-const CACHE = 'mtbyte-v22-move-planned';
+const CACHE = 'mtbyte-v23-green-done';
 const FILES = ['./', './index.html', './jspdf.umd.min.js', './protocol-pdf.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

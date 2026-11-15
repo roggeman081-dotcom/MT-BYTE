@@ -384,7 +384,7 @@ function vList(){
   <p>Välj <strong>Arbetsorder LiRo (2).xlsx</strong> i <strong>OneDrive → Projekt 2026</strong>.</p>
   <label class="camera"><span>Välj Excel-fil och importera</span><input type="file" accept=".xlsx,.csv,.txt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-import="1"></label>
   <p class="note">På iPhone: välj Bläddra → OneDrive. Om OneDrive saknas, aktivera det under Platser i appen Filer. På Android: välj OneDrive i filväljaren, eller spara en kopia från OneDrive till Hämtade filer och välj den.</p>
-  <p class="note">Gröna rader hoppas över. Befintliga uppgifter skrivs inte över. Välj filen igen när arbetsordern har uppdaterats; detta är ingen automatisk OneDrive-synkning.</p>
+  <p class="note">Gröna rader läggs under Klara. Befintliga uppgifter skrivs inte över. Välj filen igen när arbetsordern har uppdaterats; detta är ingen automatisk OneDrive-synkning.</p>
   ${lastImportText()}
   </details>
   <div class="menu"><button data-act="duplicates">Kontrollera dubbletter</button><button data-act="borda">${ICON.calc}Börda</button></div>
@@ -400,7 +400,7 @@ function jobRow(j){
   const sub=[o.newRatio?(o.oldRatio||'?')+' → '+o.newRatio:'', fb.bokad?'Bokad '+fb.bokad:'', o.ao||fmtDT(j.created)].filter(Boolean).join(' · ');
   return `<button class="job" data-act="open" data-id="${j.id}">
     <span class="cover s-${j.status}">${ICON.mt}</span><div><b>${esc(j.fore.adress||j.fore.ean||'Namnlöst byte')}</b><span>${esc(sub)}</span></div>
-    <span class="tag ${j.status==='pågår'?'on':''}">${STATUS[j.status]||j.status}</span></button>`;
+    <span class="tag ${j.status==='pågår'?'on':''}">${j.excelKlar&&j.status==='klar'?'Klar (Excel)':(STATUS[j.status]||j.status)}</span></button>`;
 }
 function jobList(){
   const q=(L.q||'').trim().toLowerCase();
@@ -759,7 +759,7 @@ async function importOrders(file){
   let added=0, done=0, dup=0, filled=0; const seen=new Set();
   for(let i=0;i<data.length;i++){
     const r=data[i]; const ean=stripNr(v(r,C.ean)); if(!ean) continue;
-    if(colorMode ? rowGreen(i) : (v(r,C.utf)||v(r,C.stopA)||/^ok$/i.test(v(r,C.stat)))){ done++; continue; }
+    const isDone=colorMode ? rowGreen(i) : !!(v(r,C.utf)||v(r,C.stopA)||/^ok$/i.test(v(r,C.stat)));
     const ao=v(r,C.ao), key=ao+'|'+ean;
     if(seen.has(key)){ dup++; continue; } seen.add(key);
     const upp=v(r,C.upp), m=upp.match(/(\d+)\s*\/\s*5[^>]*?->\s*([A-Za-z][A-Za-z0-9]*)?\s*(\d+)\s*\/\s*5/);
@@ -780,17 +780,20 @@ async function importOrders(file){
     if(ex){
       normalize(ex); ex.order=ex.order||{}; let n=0;
       for(const [k,val] of Object.entries(vals)){ const cur=get(ex,k); if(val&&(cur==null||String(cur).trim()==='')){ set(ex,k,val); n++; } else if(val&&String(cur).trim()!==String(val).trim()){ const note='Exceluppgift som skiljer sig ('+k+'): '+val+' | Behållet i jobbet: '+cur; ex.forberedelse=ex.forberedelse||{}; if(!(ex.forberedelse.notering||'').includes(note)){ex.forberedelse.notering=[ex.forberedelse.notering,note].filter(Boolean).join('\n');n++;} } }
+      /* Grön i Excel: ej påbörjat planerat jobb flyttas till Klara. Pågående jobb rörs inte. */
+      if(isDone&&ex.status==='planerad'&&!ex.movedFromOngoing){ ex.status='klar'; ex.excelKlar=true; ex.done=ex.done||new Date().toISOString(); n++; done++; }
       if(n){ await dbPut('jobs',ex); filled++; } else dup++;
       continue;
     }
     const j={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), created:new Date().toISOString(), status:'planerad',
       order:{}, fore:{nat:'TN-C 4-ledare'}, byte:{safe:{}}, efter:{}, kontroll:{fore:{},efter:{},note:{fore:{},efter:{}}}, borda:{}, forberedelse:{}};
     for(const [k,val] of Object.entries(vals)) if(val) set(j,k,val);
-    jobs.push(j); await dbPut('jobs',j); added++;
+    if(isDone){ j.status='klar'; j.excelKlar=true; j.done=j.created; done++; } else added++;
+    jobs.push(j); await dbPut('jobs',j);
   }
   try{localStorage.setItem('mtbyte-last-import',JSON.stringify({name:file.name,time:new Date().toISOString()}));}catch{}
   L.seg='planerad'; render();
-  alert(`${added} nya jobb importerade.\n${filled} befintliga jobb kompletterade (inget skrevs över).\n${done} ${colorMode?'grönmarkerade (utförda)':'utförda'} rader hoppades över.\n${dup} fanns redan eller förekom två gånger.`);
+  alert(`${added} nya planerade jobb importerade.\n${done} ${colorMode?'grönmarkerade (utförda)':'utförda'} lagda under Klara.\n${filled} befintliga jobb uppdaterade (inget skrevs över).\n${dup} fanns redan eller förekom två gånger.`);
 }
 
 /* ================= Protokoll ================= */
