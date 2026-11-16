@@ -1,6 +1,6 @@
 // Höj versionen när du laddar upp nya filer, så hämtar telefonen uppdateringen.
-const CACHE = 'mtbyte-v32-jobbpanel';
-const FILES = ['./', './index.html', './jspdf.umd.min.js', './protocol-pdf.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './zxing-reader.js', './zxing_reader.wasm', './logo-pdf.png', './stromtransformator.webp'];
+const CACHE = 'mtbyte-v33-transformatorikon';
+const FILES = ['./', './index.html', './jspdf.umd.min.js', './protocol-pdf.js', './manifest.webmanifest', './icon-transformator-192.png', './icon-transformator-512.png', './icon-transformator-maskable-512.png', './zxing-reader.js', './zxing_reader.wasm', './logo-pdf.png', './stromtransformator.webp'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
