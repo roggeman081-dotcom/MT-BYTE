@@ -384,7 +384,6 @@ function schema(j){
 }
 
 /* ================= Vyer ================= */
-function bokSort(j){ const b=(j.forberedelse||{}).bokad||''; const m=String(b).match(/(\d{4})-(\d{2})-(\d{2})/); return m?m[0]:'9999'; }
 function searchText(j){ const o=j.order||{}, fb=j.forberedelse||{};
   return [j.fore.adress,j.fore.ean,o.ao,j.fore.matarnr,o.matarnrRaw,fb.kontakt,fb.telefon,fb.nyckel,o.kund,o.uppdrag,j.fore.placering].join(' ').toLowerCase(); }
 
@@ -463,17 +462,22 @@ function jobRow(j){
     <span class="cover s-${j.status}">${ICON.mt}</span><div><b>${esc(j.fore.adress||j.fore.ean||'Namnlöst byte')}</b><span>${esc(sub)}</span></div>
     <span class="tag ${j.status==='pågår'?'on':''}">${j.excelKlar&&j.status==='klar'?'Klar (Excel)':(STATUS[j.status]||j.status)}</span></button>`;
 }
+const addressCollator = new Intl.Collator('sv', { numeric: true, sensitivity: 'accent' });
+function compareJobAddresses(a, b){
+  const addressA = (a.fore.adress || '').trim();
+  const addressB = (b.fore.adress || '').trim();
+  if(!addressA || !addressB) return Number(!addressA) - Number(!addressB);
+  return addressCollator.compare(addressA, addressB);
+}
 function jobList(){
   const q=(L.q||'').trim().toLowerCase();
   if(!jobs.length) return '<p class="empty">Inga byten än. Importera arbetsordern eller starta ett nytt byte.</p>';
-  const sorter={planerad:(a,b)=>bokSort(a).localeCompare(bokSort(b))||String((a.order||{}).ao||'~').localeCompare(String((b.order||{}).ao||'~')),
-    'pågår':(a,b)=>b.created.localeCompare(a.created), klar:(a,b)=>(b.done||b.created).localeCompare(a.done||a.created)};
   if(q){
     const hits=jobs.filter(j=>searchText(j).includes(q));
     if(!hits.length) return '<p class="empty">Inget matchar sökningen.</p>';
-    return ['pågår','planerad','klar'].map(s=>{ const l=hits.filter(j=>j.status===s).sort(sorter[s]); return l.length?`<h3>${s==='planerad'?'Planerade':s==='pågår'?'Pågående':'Klara'}</h3>${l.map(jobRow).join('')}`:''; }).join('');
+    return ['pågår','planerad','klar'].map(s=>{ const l=hits.filter(j=>j.status===s).sort(compareJobAddresses); return l.length?`<h3>${s==='planerad'?'Planerade':s==='pågår'?'Pågående':'Klara'}</h3>${l.map(jobRow).join('')}`:''; }).join('');
   }
-  const list=jobs.filter(j=>j.status===L.seg).sort(sorter[L.seg]);
+  const list=jobs.filter(j=>j.status===L.seg).sort(compareJobAddresses);
   if(!list.length) return `<p class="empty">Inga ${L.seg==='planerad'?'planerade':L.seg==='pågår'?'pågående':'klara'} jobb.</p>`;
   return list.map(jobRow).join('');
 }
