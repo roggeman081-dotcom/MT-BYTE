@@ -482,8 +482,17 @@ function vJob(){
   const head=`<div class="top"><button data-act="home" aria-label="Till listan">${ICON.back}</button><div class="t">${esc(j.fore.adress||j.fore.ean||'Nytt byte')}</div>${!navigator.onLine?'<span class="off">Offline</span>':''}<button data-act="delete" aria-label="Radera bytet">${ICON.trash}</button></div>
   <div class="tabs">${TABS.map((n,i)=>`<button data-act="tab" data-s="${i}" class="${i===s?'cur':''} ${tabDone(j,i)?'done':''}">${n}</button>`).join('')}</div>`;
   const body=[tOrder,tInfor,tFore,tByte,tEfter,tProtokoll][s](j);
-  const next=s<T_PROT?`<div class="bar"><button class="primary" data-act="next">Vidare till ${TABS[s+1]}</button></div>`:'';
+  const nb=nextStep(j,s);
+  const next=nb?`<div class="bar"><button class="primary" data-act="${nb[0]}">${nb[1]}</button></div>`:'';
   return head+body+next;
+}
+/* En knapp längst ner som för jobbet framåt: Planerad → Pågående → Klar */
+function nextStep(j,s){
+  if(s===T_INFOR&&j.status==='planerad') return ['start','Starta jobbet'];
+  if(s<T_EFTER) return ['next','Vidare till '+TABS[s+1]];
+  if(s===T_EFTER) return ['next','Klart – till protokoll'];
+  if(j.status!=='klar') return ['done','Markera som klart'];
+  return null;
 }
 function orderCard(j){
   const o=j.order; if(!o||!(o.ao||o.newRatio||o.uppdrag)) return '';
@@ -597,7 +606,7 @@ function tProtokoll(j){
   <button class="secondary" data-act="copyrow">Kopiera rad till Excel</button>
   <p class="note">Klistra in i cellen <i>gammal mätarnummer</i> på rätt rad i arket. Datum för utfört fyller du i själv.</p>
   <div id="rowprev"></div>
-  <button class="secondary" data-act="finish">${j.status==='klar'?'Öppna jobbet igen':'Markera som klart'}</button>
+  ${j.status==='klar'?'<button class="secondary" data-act="finish">Öppna jobbet igen</button>':''}
   <button class="danger" data-act="delete">Radera bytet</button>`;
 }
 
@@ -1014,6 +1023,11 @@ $app.addEventListener('click',async e=>{
   if(a==='home'){ st={view:'list'}; return render(); }
   if(a==='tab'){ st.tab=+b.dataset.s; return render(); }
   if(a==='next'){ st.tab=Math.min(T_PROT,st.tab+1); return render(); }
+  if(a==='start'){ save(j,true); st.tab=T_FORE; render(); setTimeout(()=>flash('Startat – flyttat till Pågående'),300); return; }
+  if(a==='done'){
+    const miss=[T_FORE,T_BYTE,T_EFTER].filter(i=>!tabDone(j,i)).map(i=>TABS[i]);
+    if(miss.length&&!confirm(`Inte ifyllt: ${miss.join(', ')}. Markera som klart ändå?`)) return;
+    j.status='klar'; j.done=new Date().toISOString(); save(j); st={view:'list'}; L.seg=null; render(); setTimeout(()=>flash('Klart – flyttat till Klara'),300); return; }
   if(a==='seg'){ L.seg=b.dataset.s; L.q=''; return render(); }
   if(a==='matare'){ j.byte.bytt=b.dataset.v==='1'; save(j,true); return render(true); }
   if(a==='stamp'){ set(j,b.dataset.p,new Date().toISOString()); save(j,true); return render(true); }
