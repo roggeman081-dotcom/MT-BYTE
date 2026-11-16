@@ -141,6 +141,13 @@ tr.sel td{color:var(--accent);font-weight:600}
 .job-ratios dd{margin:2px 0 0;font-size:clamp(20px,5.3vw,33px);font-weight:700;line-height:1.12;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .job-ratios div:last-child dd{color:var(--accent)}
 .job-ratios-arrow{color:var(--muted);font-size:19px}
+@media (max-width:400px){
+  .job-hero-main{grid-template-columns:minmax(0,1.8fr) minmax(0,1fr)}
+  .job-hero h1{font-size:21px}
+}
+@media (max-width:360px){
+  .job-hero h1{font-size:18px}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}button:active{transform:none}}
 </style>
 </head>
