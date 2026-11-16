@@ -219,12 +219,22 @@ const dbDel=(s,k)=>tx(s,'readwrite',o=>o.delete(k));
 const dbAll=s=>tx(s,'readonly',o=>o.getAll());
 const photosOf=id=>tx('photos','readonly',o=>o.index('job').getAll(id));
 
-let saveT;
+let saveT, pendingSave, lastSave=Promise.resolve();
+function flushSave(){
+  clearTimeout(saveT);
+  if(pendingSave){
+    lastSave=dbPut('jobs',pendingSave);
+    pendingSave=null;
+    lastSave.then(()=>flash('Sparat')).catch(()=>flash('Kunde inte spara. Telefonens lagring kan vara full.'));
+  }
+  return lastSave;
+}
 /* started=true när själva arbetet påbörjas (Före/Byte/Efter). Ändringar i Arbetsorder och Inför arbetet flyttar inte jobbet från Planerade. */
 function save(j=job(),started=false){
   if(started&&j.status==='planerad') j.status='pågår';
   clearTimeout(saveT);
-  saveT=setTimeout(()=>dbPut('jobs',j).then(()=>flash('Sparat')).catch(()=>flash('Kunde inte spara. Telefonens lagring kan vara full.')),250);
+  pendingSave=j;
+  saveT=setTimeout(flushSave,250);
 }
 
 /* ================= Hjälpare ================= */
@@ -439,7 +449,7 @@ function reviewDuplicates(){
   const preview=mergeJobPreview(a,b),details=document.createElement('details'),sum=document.createElement('summary');sum.textContent='Visa uppgifter som skiljer sig ('+preview.conflicts.length+')';details.appendChild(sum);const pre=document.createElement('p');pre.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere';pre.textContent=preview.conflicts.join('\n')||'Tomma fält kompletteras. Bilder behåller sina steg.';details.appendChild(pre);box.appendChild(details);
   const button=document.createElement('button');button.textContent='Samma arbete – slå ihop till Planerade';button.className='secondary';button.onclick=async()=>{
    if(!confirm('Slå ihop dessa två jobb? Uppgifter som skiljer sig sparas i Övriga anteckningar under Inför arbetet. Alla bilder behålls under sina befintliga steg.'))return;
-   button.disabled=true;clearTimeout(saveT);
+   button.disabled=true;clearTimeout(saveT);pendingSave=null;
    const merged=mergeJobPreview(a,b).result,updated=jobs.filter(j=>j.id!==b.id).map(j=>j.id===a.id?merged:j);
    try{await new Promise((resolve,reject)=>{const t=DB.transaction(['jobs','photos'],'readwrite'),store=t.objectStore('jobs');for(const j of updated)store.put(j);store.delete(b.id);const photos=t.objectStore('photos'),req=photos.index('job').openCursor(IDBKeyRange.only(b.id));req.onsuccess=()=>{const c=req.result;if(c){const p=c.value;p.jobId=a.id;c.update(p);c.continue();}};t.oncomplete=resolve;t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error);});jobs=updated;d.close();st={view:'list'};L.seg='planerad';L.q='';render();flash('Jobben är sammanslagna. Bilder och anteckningar är kvar.');}catch(e){button.disabled=false;alert('Kunde inte spara sammanslagningen. Jobben har inte slagits ihop.');}
   };box.appendChild(button);d.appendChild(box);
@@ -460,6 +470,12 @@ function vList(){
   <p class="note">På iPhone: välj Bläddra → OneDrive. Om OneDrive saknas, aktivera det under Platser i appen Filer. På Android: välj OneDrive i filväljaren, eller spara en kopia från OneDrive till Hämtade filer och välj den.</p>
   <p class="note">Gröna rader läggs under Klara. Befintliga uppgifter skrivs inte över. Välj filen igen när arbetsordern har uppdaterats; detta är ingen automatisk OneDrive-synkning.</p>
   ${lastImportText()}
+  </details>
+  <details class="card">
+    <summary style="padding:14px;cursor:pointer;font-weight:600">Säkerhetskopia</summary>
+    <p class="note">Spara jobb, kontaktuppgifter, kontroller och foton i Filer eller OneDrive. Kopian innehåller kunduppgifter. Spara den på en plats du har behörighet att använda.</p>
+    <button class="secondary" data-act="backup">Skapa säkerhetskopia</button>
+    <label class="camera"><span>Återställ från säkerhetskopia</span><input type="file" accept=".json,application/json" data-restore="1"></label>
   </details>
   <div class="menu"><button data-act="duplicates">Kontrollera dubbletter</button><button data-act="borda">${ICON.calc}Börda</button></div>
   <button class="primary" data-act="new">Starta nytt byte</button>
@@ -905,7 +921,77 @@ async function importOrders(file){
 }
 
 /* ================= Protokoll ================= */
-function blobToData(b){ return new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(b); }); }
+function blobToData(b){ return new Promise((resolve,reject)=>{ const fr=new FileReader(); fr.onload=()=>resolve(fr.result); fr.onerror=()=>reject(fr.error); fr.readAsDataURL(b); }); }
+
+async function createBackup(button){
+  button.disabled=true;
+  try{
+    await flushSave();
+    const snapshot=DB.transaction(['jobs','photos'],'readonly');
+    const records=snapshot.objectStore('jobs').getAll(), pictures=snapshot.objectStore('photos').getAll();
+    await new Promise((resolve,reject)=>{
+      snapshot.oncomplete=resolve;
+      snapshot.onabort=()=>reject(snapshot.error);
+    });
+    if(!records.result.length){ alert('Det finns inga jobb att säkerhetskopiera i den här installationen.'); return; }
+    const jobIds=new Set(records.result.map(j=>j.id));
+    const photos=await Promise.all(pictures.result.filter(p=>jobIds.has(p.jobId))
+      .map(async ({blob,...photo})=>({...photo,data:await blobToData(blob)})));
+    const file=new File([JSON.stringify({format:'mtbyte-backup',version:1,jobs:records.result,photos})],
+      'mtbyte-sakerhetskopia-'+new Date().toISOString().slice(0,19).replaceAll(':','-')+'.json',{type:'application/json'});
+    const url=URL.createObjectURL(file), dialog=document.createElement('dialog');
+    dialog.className='pdf';
+    dialog.innerHTML='<h2>Spara säkerhetskopian</h2><p>Välj Filer eller företagets OneDrive.</p><button class="primary" hidden>Dela eller spara i Filer</button><a class="secondary">Hämta säkerhetskopian</a><form method="dialog"><button class="ghost">Stäng</button></form>';
+    const download=dialog.querySelector('a');
+    download.href=url; download.download=file.name;
+    if(navigator.canShare?.({files:[file]})){
+      const share=dialog.querySelector('button');
+      share.hidden=false;
+      share.addEventListener('click',async ()=>{
+        try{ await navigator.share({files:[file]}); }
+        catch(error){ if(error.name!=='AbortError') alert('Delningen misslyckades. Välj Hämta säkerhetskopian.'); }
+      });
+    }
+    dialog.addEventListener('close',()=>{dialog.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);},{once:true});
+    document.body.appendChild(dialog); dialog.showModal();
+  }catch(error){ alert('Säkerhetskopian kunde inte skapas. Försök igen innan du tar bort appen.'); }
+  finally{ button.disabled=false; }
+}
+
+async function restoreBackup(file){
+  const backup=JSON.parse(await file.text());
+  if(backup?.format!=='mtbyte-backup'||backup.version!==1||!Array.isArray(backup.jobs)||!Array.isArray(backup.photos)) throw Error('Ogiltig säkerhetskopia');
+  const ids=new Set(), photoIds=new Set();
+  for(const j of backup.jobs){
+    if(typeof j?.id!=='string'||!j.id||ids.has(j.id)||!['planerad','pågår','klar'].includes(j.status)||!j.fore||!j.created) throw Error('Ogiltigt jobb');
+    ids.add(j.id); normalize(j);
+  }
+  const photos=backup.photos.map(({data,...photo})=>{
+    if(typeof photo.id!=='string'||!photo.id||photoIds.has(photo.id)||!ids.has(photo.jobId)||typeof data!=='string'||!data.startsWith('data:image/jpeg;base64,')) throw Error('Ogiltigt foto');
+    photoIds.add(photo.id);
+    return {...photo,blob:new Blob([Uint8Array.from(atob(data.slice(23)),c=>c.charCodeAt(0))],{type:'image/jpeg'})};
+  });
+  if(!confirm(`Kopian innehåller ${ids.size} jobb och ${photos.length} foton. Befintliga poster med samma ID behålls. Återställ?`)) return;
+  await flushSave();
+  const transaction=DB.transaction(['jobs','photos'],'readwrite');
+  const counts={jobs:0,photos:0};
+  await new Promise((resolve,reject)=>{
+    transaction.oncomplete=resolve;
+    transaction.onabort=()=>reject(transaction.error);
+    for(const [name,entries] of Object.entries({jobs:backup.jobs,photos})){
+      const store=transaction.objectStore(name), keys=store.getAllKeys();
+      keys.onsuccess=()=>{
+        const existing=new Set(keys.result);
+        for(const entry of entries){
+          if(existing.has(entry.id)) continue;
+          store.add(entry); counts[name]++;
+        }
+      };
+    }
+  });
+  jobs=await dbAll('jobs'); L.seg=null; L.q=''; render();
+  alert(`Återställde ${counts.jobs} jobb och ${counts.photos} foton.`);
+}
 async function protocolHtml(j){
   const ph=await photosOf(j.id);
   const imgs=await Promise.all(ph.sort((a,b)=>a.t.localeCompare(b.t)).map(async p=>({step:p.reg?'Register '+p.reg+' ('+(p.step==='register-fore'?'före':'efter')+')':({forberedelse:'Inför arbetet',fore:'Anläggningen före',byte:'Byte',efter:'Anläggningen efter','register-fore':'Register före','register-efter':'Register efter'}[p.step]||p.step),t:p.t,src:await blobToData(p.blob)})));
@@ -1040,6 +1126,7 @@ $app.addEventListener('change',async e=>{
     $app.querySelector('.job-hero').outerHTML=jobHero(job());
   }
   if(t.dataset.import&&t.files[0]){ const fl=t.files[0]; t.value=''; try{ await importOrders(fl); }catch(err){ console.error(err); alert('Kunde inte läsa filen ('+err.message+'). Prova att spara arket som .xlsx igen och välj den filen.'); } return; }
+  if(t.dataset.restore&&t.files[0]){ const file=t.files[0]; t.value=''; try{ await restoreBackup(file); }catch{ alert('Kunde inte återställa säkerhetskopian. Kontrollera filen och telefonens lediga lagring.'); } return; }
   if(t.dataset.scan&&t.files[0]){ const fl=t.files[0]; t.value=''; return handleScan(t.dataset.scan,fl); }
   const step=t.dataset.photo; if(!step||!t.files[0]) return;
   const j=job();
@@ -1054,6 +1141,7 @@ $app.addEventListener('change',async e=>{
 $app.addEventListener('click',async e=>{
   const b=e.target.closest('[data-act]'); if(!b) return;
   const a=b.dataset.act, j=job();
+  if(a==='backup') return createBackup(b);
   if(a==='duplicates') return reviewDuplicates();
   if(a==='new') return newJob();
   if(a==='open') return openJob(b.dataset.id);
@@ -1089,7 +1177,7 @@ $app.addEventListener('click',async e=>{
     const moving=jobs.filter(x=>x.status==='pågår');
     if(!moving.length) return;
     if(!confirm('Flytta '+moving.length+' pågående jobb till Planerade? Alla uppgifter, kontroller och bilder behålls. Klara jobb påverkas inte.')) return;
-    clearTimeout(saveT);
+    clearTimeout(saveT); pendingSave=null;
     const snapshots=jobs.map(x=>x.status==='pågår'?{...x,status:'planerad',movedFromOngoing:true}:x);
     try{
       await tx('jobs','readwrite',store=>{for(const x of snapshots)store.put(x);});
@@ -1101,11 +1189,13 @@ $app.addEventListener('click',async e=>{
   if(a==='clearplanned'){
     if(jobs.some(x=>x.status==='planerad'&&x.movedFromOngoing)){alert('Här finns tidigare pågående jobb med sparade uppgifter. Massrensning är därför avstängd. Radera endast enskilda jobb som du inte behöver.');return;}
  const n=jobs.filter(x=>x.status==='planerad').length; if(!confirm(`Ta bort ${n} uppdrag som inte är påbörjade? Påbörjade och klara byten påverkas inte.`)) return;
+    await flushSave().catch(()=>{});
     for(const x of jobs.filter(x=>x.status==='planerad')) await dbDel('jobs',x.id); jobs=jobs.filter(x=>x.status!=='planerad'); return render(); }
   if(a==='finish'){ j.status=j.status==='klar'?'pågår':'klar'; if(j.status==='klar') j.done=new Date().toISOString(); save(j); flash(j.status==='klar'?'Flyttat till Klara':'Flyttat till Pågående'); return render(true); }
   if(a==='delete'){ const n=(await photosOf(j.id)).length, namn=j.fore.adress||j.fore.ean||'detta byte';
     const msg=j.status==='klar'?`Radera ${namn} och ${n} foton? Går inte att ångra. Har du skickat protokollet?`:`Radera ${namn}${n?` och ${n} foton`:''}? Går inte att ångra.`;
     if(!confirm(msg)) return;
+    await flushSave().catch(()=>{});
     for(const p of await photosOf(j.id)) await dbDel('photos',p.id); await dbDel('jobs',j.id);
     jobs=jobs.filter(x=>x.id!==j.id); st={view:'list'}; render(); }
 });
