@@ -275,15 +275,19 @@ function orderWarn(j){
 }
 /* Nya mätarens avläsningar sparas i egna fält (n1–n4), skilda från samma mätares ställning efter (r1–r4) */
 const nk=r=>'n'+r.k.slice(1);
-function efterRegKey(j,r){ return j.byte.bytt?nk(r):r.k; }
+function hasReading(value){ return value!=null&&String(value).trim()!==''; }
+function meterReading(j,key){
+  const before=j.fore[key];
+  return hasReading(before)?before:j.byte.bytt?'':j.efter[key]??'';
+}
 function tabDone(j,i){
   const fb=j.forberedelse||{};
   return [
     ()=>!!(j.fore.ean && j.fore.adress),
     ()=>!!(fb.kontakt||fb.telefon||fb.bokad||fb.nyckel||fb.tilltrade||j.fore.placering||fb.viktigt),
-    ()=>!!(j.fore.r1 && kc(j,'fore')===K2N),
+    ()=>hasReading(meterReading(j,'r1'))&&kc(j,'fore')===K2N,
     ()=>!!(j.byte.slut && j.byte.ratio && SAFE.every((_,x)=>j.byte.safe[x]) && (!j.byte.bytt||j.byte.nyttnr)),
-    ()=>!!(j.efter[j.byte.bytt?'n1':'r1'] && kc(j,'efter',true)===K2N),
+    ()=>(!j.byte.bytt||hasReading(j.efter.n1))&&kc(j,'efter',true)===K2N,
     ()=>j.status==='klar'
   ][i]();
 }
@@ -375,15 +379,13 @@ function regFields(ph){
   const j=job(), nyM=ph==='efter'&&j.byte.bytt;
   return `<div class="regs">${REGS.map(r=>{
     const key=nyM?nk(r):r.k;
-    const fv=num(j.fore[r.k]), ev=num(j[ph][key]), d=ph==='efter'&&!nyM&&fv!=null&&ev!=null?ev-fv:null;
     const reg=r.o+(nyM?' ny mätare':''), rp=photoMeta.filter(p=>p.step==='register-'+ph&&p.reg===reg);
     return `<div class="f"><span>${r.o} ${r.t}, ${r.u}</span><div class="regrow"><input data-k="${ph}.${key}" value="${esc(j[ph][key])}" inputmode="decimal" autocomplete="off" aria-label="${r.o}">
     <label class="rcam ${rp.length?'has':''}" aria-label="Fota ${r.o}">${ICON.cam}<input type="file" accept="image/*" capture="environment" data-photo="register-${ph}" data-reg="${reg}"></label></div>
     ${rp.length?`<div class="photos rph">${rp.map(p=>`<figure><img src="${photoUrls[p.id]}" alt="Foto ${esc(reg)}"><button data-act="delphoto" data-id="${p.id}" aria-label="Ta bort foto">×</button></figure>`).join('')}</div>`:''}
-    ${ph==='efter'&&!nyM?`<small id="d-${r.k}" class="${d!=null&&d<0?'acc':''}">${diffText(d,r.u)}</small>`:''}</div>`;
+    </div>`;
   }).join('')}</div>`;
 }
-function diffText(d,u){ return d==null?'':d<0?`Lägre än före (${dec(d,1)} ${u}). Kontrollera avläsningen.`:`+${dec(d,1)} ${u} sedan före`; }
 function checklist(j,ph){
   const k=j.kontroll[ph]||{}, notes=j.kontroll.note[ph]||{}, was=ph==='efter'?(j.kontroll.fore||{}):{};
   return K2.map(r=>{
@@ -590,7 +592,7 @@ function tFore(j){ return `${orderCard(j)}<h2>Anläggning</h2>
   <div class="row2">${f('Plint','fore.plint',{ph:'t.ex. A1'})}${f('Terminalnummer (sällan)','fore.terminal',{ph:'NA16ET…'})}</div>
   <label class="f"><span>Mätarsäkring på plats, A</span><select data-k="fore.sakring">${SAKR.map(v=>`<option value="${v}" ${v===(j.fore.sakring||'')?'selected':''}>${v?v+' A':'Välj'}</option>`).join('')}</select></label>
   <div id="sw-fore">${sakWarn(j,'fore')}</div>
-  <h2>Mätarställning före</h2>
+  <h2>${j.byte.bytt?'Stoppställning gammal mätare':'Mätarställning'}</h2>
   <p class="note">Primärvärden. Stega fram registret på displayen och tryck på kameran vid rätt fält.</p><br>
   ${regFields('fore')}
   ${photos('register-fore','Fota övrigt (t.ex. hela mätaren)')}
@@ -619,7 +621,7 @@ function tByte(j){
   <div class="seg seg2"><button data-act="matare" data-v="0" class="${j.byte.bytt?'':'cur'}">Behålls</button><button data-act="matare" data-v="1" class="${j.byte.bytt?'cur':''}">Elmätaren byts</button></div>
   ${j.byte.bytt?`<div class="row2">${f('Nytt mätarnummer','byte.nyttnr',{im:'numeric'})}${f('Ny terminalnr','byte.terminal')}</div>
   ${scanBox(j,'byte')}
-  <p class="note">Nya mätarens startställning fylls i under Efter, skild från den gamla mätarens ställning.</p>`:'<p class="note">Vanligast. Samma mätare läses av före och efter.</p>'}
+  <p class="note">Nya mätarens startställning fylls i under Efter, skild från den gamla mätarens ställning.</p>`:'<p class="note">En avläsning under Före räcker när elmätaren behålls.</p>'}
   <br><button class="secondary" data-act="borda-job">${bo?`Börda sparad: ${dec(bo.tot,2)} VA · ${bo.ok?'OK':'Ej OK'} · öppna`:'Kontrollera bördan'}</button><br>
   ${photos('byte','Fota ny trafo och märkskylt')}`;
 }
@@ -633,9 +635,9 @@ function tEfter(j){ return `<h2>Kontroll efter byte</h2>
   ${checklist(j,'efter')}
   ${schema(j)}
   ${j.byte.bytt?`<h2>Startställning ny mätare</h2>
-  <p class="note">Ny mätare ${esc(j.byte.nyttnr||'(nummer saknas under Byte)')}. Gamla mätarens ställning finns under Före.</p><br>`:'<h2>Mätarställning efter</h2>'}
+  <p class="note">Ny mätare ${esc(j.byte.nyttnr||'(nummer saknas under Byte)')}. Gamla mätarens ställning finns under Före.</p><br>
   ${regFields('efter')}
-  ${photos('register-efter','Fota övrigt (t.ex. hela mätaren)')}
+  ${photos('register-efter','Fota övrigt (t.ex. hela mätaren)')}`:''}
   ${f('Nya plombnummer','efter.plomb')}
   <label class="f"><span>Kommentar</span><textarea data-k="efter.kommentar">${esc(j.efter.kommentar)}</textarea></label>
   ${photos('efter','Fota anläggningen efter')}`; }
@@ -709,12 +711,12 @@ function rowPreview(c,bytt){
   ${navigator.share?'<button class="secondary" data-act="sharerow">Dela raden istället</button>':''}</div>`;
 }
 function excelCells(j){
-  const u=(v,unit)=>v?`${String(v).trim()} ${unit}`:'';
+  const u=(v,unit)=>hasReading(v)?`${String(v).trim()} ${unit}`:'';
   const raw=j.order&&j.order.matarnrRaw;
   const mn = raw&&stripNr(raw)===stripNr(j.fore.matarnr) ? raw : (j.fore.matarnr?'*'+j.fore.matarnr:'');
   /* Mätaren behålls: bara en uppsättning register (ställning före, annars efter). Mätarbyte: gammal mätares stopp + nya mätarens start. */
   const b=j.byte.bytt, e=b?{r1:j.efter.n1,r2:j.efter.n2,r3:j.efter.n3,r4:j.efter.n4}:{};
-  const g=k=>j.fore[k]||(b?'':j.efter[k]);
+  const g=k=>meterReading(j,k);
   const cells=[mn, j.fore.plint||'', j.fore.placering||'', stamp(j.byte.start),
     u(g('r1'),'kWh'), u(g('r3'),'kvarh'), u(g('r2'),'kWh'), u(g('r4'),'kvarh'),
     j.fore.sakring?j.fore.sakring+' A':'',
@@ -999,9 +1001,8 @@ async function protocolHtml(j){
   const kf=j.kontroll.fore||{}, ke=j.kontroll.efter||{}, nt=j.kontroll.note;
   const rows=K2.map(r=>`<tr><td>${r.t}${nt.fore[r.id]?`<br><i>Före: ${esc(nt.fore[r.id])}</i>`:''}${nt.efter[r.id]?`<br><i>Efter: ${esc(nt.efter[r.id])}</i>`:''}</td>
     <td>${mk(kv(kf,r))}</td><td>${mk(kv(ke,r))}</td></tr>`).join('');
-  const regs=j.byte.bytt
-    ? REGS.map(r=>`<tr><td>${r.o} ${r.t}</td><td>${esc(j.fore[r.k]||'—')}</td><td>${esc(j.efter[nk(r)]||'—')}</td><td>${r.u}</td></tr>`).join('')
-    : REGS.map(r=>{const a=num(j.fore[r.k]),b=num(j.efter[r.k]);return `<tr><td>${r.o} ${r.t}</td><td>${esc(j.fore[r.k]||'—')}</td><td>${esc(j.efter[r.k]||'—')}</td><td>${a!=null&&b!=null?dec(b-a,3):'—'} ${r.u}</td></tr>`}).join('');
+  const readingCell=value=>`<td>${esc(hasReading(value)?value:'—')}</td>`;
+  const regs=REGS.map(r=>`<tr><td>${r.o} ${r.t}</td>${readingCell(meterReading(j,r.k))}${j.byte.bytt?readingCell(j.efter[nk(r)]):''}<td>${r.u}</td></tr>`).join('');
   const tr=(l,v)=>v?`<tr><td>${l}</td><td>${esc(v)}</td></tr>`:'';
   const o=j.order||{}, fb=j.forberedelse||{};
   const fF=kfel(j,'fore'), fE=kfel(j,'efter'), bo=j.borda&&j.borda.saved;
@@ -1021,7 +1022,7 @@ ${[fb.kontakt,fb.telefon,fb.epost,fb.bokad,fb.nyckel,fb.tilltrade,j.fore.placeri
 <tr><td>Plint / placering</td><td>${esc(j.fore.plint||'—')} / ${esc(j.fore.placering||'—')}</td></tr>
 <tr><td>Mätarsäkring</td><td>${j.fore.sakring?j.fore.sakring+' A':'—'}${j.order&&j.order.xlnt?` (system: ${j.order.xlnt} A)`:''}</td></tr><tr><td>Adress</td><td>${esc(j.fore.adress||'—')}</td></tr><tr><td>Nätsystem</td><td>${esc(j.fore.nat)}</td></tr><tr><td>Mätarnummer${j.byte.bytt?' (gammal mätare)':''}</td><td>${esc(j.fore.matarnr||'—')}</td></tr></table>
 <h2>Mätarställning (primärvärden)</h2>
-${j.byte.bytt?`<table><tr><th>Register</th><th>Gammal mätare ${esc(j.fore.matarnr||'')}</th><th>Ny mätare ${esc(j.byte.nyttnr||'')} start</th><th>Enhet</th></tr>${regs}</table>`:`<table><tr><th>Register</th><th>Före</th><th>Efter</th><th>Diff</th></tr>${regs}</table>`}
+${j.byte.bytt?`<table><tr><th>Register</th><th>Gammal mätare ${esc(j.fore.matarnr||'')}</th><th>Ny mätare ${esc(j.byte.nyttnr||'')} start</th><th>Enhet</th></tr>${regs}</table>`:`<table><tr><th>Register</th><th>Avläsning</th><th>Enhet</th></tr>${regs}</table>`}
 <h2>Byte</h2>
 <table><tr><td>Säkerhet före arbete</td><td>${SAFE.map((s,i)=>`${j.byte.safe[i]?'✓':'✕'} ${s}`).join('<br>')}</td></tr>
 <tr><td>Avbrott</td><td>${fmtT(j.byte.start)}–${fmtT(j.byte.slut)} (${min} min)</td></tr>
@@ -1116,7 +1117,6 @@ $app.addEventListener('input',e=>{
   if(k==='forberedelse.telefon'){ const c=document.getElementById('callbtn'), h=telHref(t.value); if(c){ c.href=h||'#'; c.classList.toggle('off2',!h); } }
   if(k==='forberedelse.epost'){ const c=document.getElementById('mailbtn'), ok=t.value.includes('@'); if(c){ c.href=ok?'mailto:'+t.value.trim():'#'; c.classList.toggle('off2',!ok); } }
   if(k==='byte.ratio'||k==='fore.ratio'){ const w=document.getElementById('rw'); if(w) w.innerHTML=orderWarn(j)+ratioWarn(j)+sakWarn(j,'byte'); const w2=document.getElementById('sw-fore'); if(w2) w2.innerHTML=sakWarn(j,'fore'); }
-  if(k.startsWith('efter.r')){ const r=REGS.find(x=>'efter.'+x.k===k), el=document.getElementById('d-'+r.k); const fv=num(j.fore[r.k]), ev=num(t.value), d=fv!=null&&ev!=null?ev-fv:null; el.className=d!=null&&d<0?'acc':''; el.textContent=diffText(d,r.u); }
 });
 $app.addEventListener('change',async e=>{
   const t=e.target;
