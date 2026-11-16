@@ -8,8 +8,8 @@
   "theme_color": "#121212",
   "lang": "sv",
   "icons": [
-    { "src": "icon-transformator-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-transformator-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-transformator-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icon-transformator-vit-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-transformator-vit-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-transformator-vit-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
