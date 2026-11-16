@@ -1,5 +1,5 @@
 // Höj versionen när du laddar upp nya filer, så hämtar telefonen uppdateringen.
-const CACHE = 'mtbyte-v34-vit-transformatorikon';
+const CACHE = 'mtbyte-v35-sakerhetskopia';
 const FILES = ['./', './index.html', './jspdf.umd.min.js', './protocol-pdf.js', './manifest.webmanifest', './icon-transformator-vit-192.png', './icon-transformator-vit-512.png', './icon-transformator-vit-maskable-512.png', './zxing-reader.js', './zxing_reader.wasm', './logo-pdf.png', './stromtransformator.webp'];
 
 self.addEventListener('install', e => {
