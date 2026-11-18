@@ -1,0 +1,9 @@
+<!doctype html><html lang="sv"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Uppdatera Mätaren</title><style>body{background:#111;color:#fff;font:18px system-ui;max-width:480px;margin:60px auto;padding:24px}button{font:inherit;padding:18px;background:#d9ff78;border:0;border-radius:10px}a{color:#d9ff78}</style><h1>Mätaren</h1><p>Hämta den senaste appversionen. Sparade jobb, anteckningar och bilder behålls.</p><button id="update">Uppdatera och öppna Mätaren</button><p id="status" role="status"></p><script>
+const button=document.getElementById('update'),statusText=document.getElementById('status');
+button.onclick=async()=>{button.disabled=true;statusText.textContent='Hämtar Mätaren…';try{
+const response=await fetch('./index.html',{cache:'no-store'});if(!response.ok)throw Error('Kunde inte hämta appen');const html=await response.text();if(!html.includes('<title>Mätaren</title>'))throw Error('Den nya versionen är inte tillgänglig ännu');
+const names=await caches.keys();for(const name of names)if(/^(mtbyte|mataren)-/.test(name))await caches.delete(name);
+if('serviceWorker' in navigator){const registration=await navigator.serviceWorker.getRegistration('./');if(registration)await registration.update();}
+location.replace('./?uppdaterad='+Date.now());
+}catch(error){statusText.textContent='Kunde inte uppdatera. Kontrollera internet och försök igen. Dina jobb finns kvar.';button.disabled=false;}};
+</script></html>
