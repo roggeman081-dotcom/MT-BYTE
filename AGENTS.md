@@ -1,4 +1,4 @@
-# Utvecklingsinstruktioner för MT-BYTE
+# Utvecklingsinstruktioner för Mätaren
 
 ## Superpowers och Codex
 

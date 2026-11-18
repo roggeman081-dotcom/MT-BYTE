@@ -508,7 +508,7 @@ function reviewDuplicates(){
  const close=document.createElement('button');close.textContent='Stäng utan fler ändringar';close.onclick=()=>d.close();d.appendChild(close);d.onclose=()=>d.remove();document.body.appendChild(d);d.showModal();
 }
 
-function lastImportText(){try{const x=JSON.parse(localStorage.getItem('mtbyte-last-import')||'null');return x?'<p class="note">Senast importerad: '+esc(x.name)+' · '+esc(new Date(x.time).toLocaleString('sv-SE'))+'</p>':'';}catch{return '';}}
+function lastImportText(){try{const x=JSON.parse((localStorage.getItem('mataren-last-import')||localStorage.getItem('mtbyte-last-import'))||'null');return x?'<p class="note">Senast importerad: '+esc(x.name)+' · '+esc(new Date(x.time).toLocaleString('sv-SE'))+'</p>':'';}catch{return '';}}
 function vList(){
   const off=!navigator.onLine?'<span class="off">Offline – allt sparas i telefonen</span>':'';
   const n={planerad:0,'pågår':0,klar:0}; jobs.forEach(j=>n[j.status]=(n[j.status]||0)+1);
@@ -551,13 +551,13 @@ function jobRow(j){
   const sub=o.newRatio?(o.oldRatio||'?')+' → '+o.newRatio:'';
   const contact=fb.kontakt||'', phone=fb.telefon||'';
   const lookup=encodeURIComponent([fore.adress,'Helsingborg'].filter(Boolean).join(', '));
-  const url='https://www.openstreetmap.org/search?query='+lookup;
+  const url='https://maps.apple.com/?q='+lookup;
   const safePhone=telHref(phone);
   return `<article class="dash-job s-${esc(j.status)}">
     <div class="dash-job-map">
       <svg viewBox="0 0 320 96" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path d="M-40 90 Q56 10 148 43 T355 18M-30 7 Q95 90 181 56 T352 94M48-20 L102 125M250-20 L208 120" fill="none" stroke="#545c5e" stroke-width="10"/><path d="M-40 90 Q56 10 148 43 T355 18M-30 7 Q95 90 181 56 T352 94" fill="none" stroke="#222a2b" stroke-width="6"/></svg>
       <span class="dash-map-pin" aria-hidden="true">●</span>
-      <a href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="Öppna karta för ${esc(address)}">Visa riktig karta ↗</a>
+      <a href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="Öppna Apple Kartor för ${esc(address)}">Öppna Apple Kartor ↗</a>
     </div>
     <button type="button" class="dash-job-main" data-act="open" data-id="${esc(j.id)}">
       <span class="dash-job-address">${esc(address)}</span>
@@ -992,7 +992,7 @@ async function importOrders(file){
     if(isDone){ j.status='klar'; j.excelKlar=true; j.done=j.created; done++; } else added++;
     jobs.push(j); await dbPut('jobs',j);
   }
-  try{localStorage.setItem('mtbyte-last-import',JSON.stringify({name:file.name,time:new Date().toISOString()}));}catch{}
+  try{localStorage.setItem('mataren-last-import',JSON.stringify({name:file.name,time:new Date().toISOString()}));}catch{}
   L.seg='planerad'; render();
   alert(`${added} nya planerade jobb importerade.\n${done} ${colorMode?'grönmarkerade (utförda)':'utförda'} lagda under Klara.\n${filled} befintliga jobb uppdaterade (inget skrevs över).\n${dup} fanns redan eller förekom två gånger.`);
 }
@@ -1014,8 +1014,8 @@ async function createBackup(button){
     const jobIds=new Set(records.result.map(j=>j.id));
     const photos=await Promise.all(pictures.result.filter(p=>jobIds.has(p.jobId))
       .map(async ({blob,...photo})=>({...photo,data:await blobToData(blob)})));
-    const file=new File([JSON.stringify({format:'mtbyte-backup',version:1,jobs:records.result,photos})],
-      'mtbyte-sakerhetskopia-'+new Date().toISOString().slice(0,19).replaceAll(':','-')+'.json',{type:'application/json'});
+    const file=new File([JSON.stringify({format:'mataren-backup',version:1,jobs:records.result,photos})],
+      'mataren-sakerhetskopia-'+new Date().toISOString().slice(0,19).replaceAll(':','-')+'.json',{type:'application/json'});
     const url=URL.createObjectURL(file), dialog=document.createElement('dialog');
     dialog.className='pdf';
     dialog.innerHTML='<h2>Spara säkerhetskopian</h2><p>Välj Filer eller företagets OneDrive.</p><button class="primary" hidden>Dela eller spara i Filer</button><a class="secondary">Hämta säkerhetskopian</a><form method="dialog"><button class="ghost">Stäng</button></form>';
@@ -1037,7 +1037,7 @@ async function createBackup(button){
 
 async function restoreBackup(file){
   const backup=JSON.parse(await file.text());
-  if(backup?.format!=='mtbyte-backup'||backup.version!==1||!Array.isArray(backup.jobs)||!Array.isArray(backup.photos)) throw Error('Ogiltig säkerhetskopia');
+  if(!['mataren-backup','mtbyte-backup'].includes(backup?.format)||backup.version!==1||!Array.isArray(backup.jobs)||!Array.isArray(backup.photos)) throw Error('Ogiltig säkerhetskopia');
   const ids=new Set(), photoIds=new Set();
   for(const j of backup.jobs){
     if(typeof j?.id!=='string'||!j.id||ids.has(j.id)||!['planerad','pågår','klar'].includes(j.status)||!j.fore||!j.created) throw Error('Ogiltigt jobb');
