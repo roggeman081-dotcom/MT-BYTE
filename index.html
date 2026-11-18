@@ -6,11 +6,11 @@
 <meta name="theme-color" content="#080808">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="MT-byte">
+<meta name="apple-mobile-web-app-title" content="Mätaren">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-transformator-vit-192.png">
 <link rel="apple-touch-icon" href="icon-transformator-vit-192.png">
-<title>MT-byte</title>
+<title>Mätaren</title>
 <style>
 :root{
   --bg:#080808; --elev:#141414; --surface:#202020; --hover:#282828; --line:#303030; --text:#ffffff; --muted:#b3b3b3; --dim:#8e8e8e;
@@ -514,7 +514,7 @@ function vList(){
   const n={planerad:0,'pågår':0,klar:0}; jobs.forEach(j=>n[j.status]=(n[j.status]||0)+1);
   if(!L.seg) L.seg=n['pågår']?'pågår':n.planerad?'planerad':'pågår';
   const total=n.planerad+n['pågår'], progress=total?Math.min(100,Math.round(100*n['pågår']/total)):0;
-  return `<div class="dash-header"><div class="dash-brand"><span class="dash-mark">ϟ</span><div><h1>MT-byte</h1><small>LiRo Elteknik</small></div></div><button class="dash-tools" type="button" data-act="tools" aria-label="Visa verktyg">⚙ Verktyg</button></div>
+  return `<div class="dash-header"><div class="dash-brand"><span class="dash-mark">ϟ</span><div><h1>Mätaren</h1><small>LiRo Elteknik</small></div></div><button class="dash-tools" type="button" data-act="tools" aria-label="Visa verktyg">⚙ Verktyg</button></div>
   ${off}
   <section class="dash-speed" aria-label="Pågående i förhållande till planerade">
     <div class="dash-speed-dial" style="--meter-progress:${progress}"><div class="dash-speed-inner"><span class="dash-speed-number">${n['pågår']}<i> / ${n.planerad}</i></span><span class="dash-speed-caption">Pågår / Planerade</span></div></div>
@@ -606,7 +606,7 @@ function jobHero(j){
 }
 function vJob(){
   const j=job(), s=st.tab;
-  const head=`<div class="top"><button data-act="home" aria-label="Till listan">${ICON.back}</button><div class="t">MT-byte</div>${!navigator.onLine?'<span class="off">Offline</span>':''}<button data-act="delete" aria-label="Radera bytet">${ICON.trash}</button></div>
+  const head=`<div class="top"><button data-act="home" aria-label="Till listan">${ICON.back}</button><div class="t">Mätaren</div>${!navigator.onLine?'<span class="off">Offline</span>':''}<button data-act="delete" aria-label="Radera bytet">${ICON.trash}</button></div>
   ${jobHero(j)}
   <div class="tabs">${TABS.map((n,i)=>`<button data-act="tab" data-s="${i}" class="${i===s?'cur':''} ${tabDone(j,i)?'done':''}">${n}</button>`).join('')}</div>`;
   const body=[tOrder,tInfor,tFore,tByte,tEfter,tProtokoll][s](j);
