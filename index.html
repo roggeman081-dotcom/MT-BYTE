@@ -523,7 +523,21 @@ function vList(){
   <div class="dash-shortcuts"><button type="button" class="dash-shortcut" data-act="new"><b>＋</b><span>Nytt byte</span></button><button type="button" class="dash-shortcut" data-act="tools"><b>⚙</b><span>Verktyg</span></button><button type="button" class="dash-shortcut" data-act="borda"><b>▦</b><span>Börda</span></button></div>
   <div id="dash-toolbox" class="dash-toolbox" hidden>
     <h2>Verktyg och säkerhetskopia</h2>
-    ${existingTools}
+<details class="card" id="mobile-import"><summary style="padding:14px;cursor:pointer;font-weight:600">${ICON.imp} Hämta arbetsorder från fil / OneDrive</summary>
+  <p>Välj <strong>Arbetsorder LiRo (2).xlsx</strong> i <strong>OneDrive → Projekt 2026</strong>.</p>
+  <label class="camera"><span>Välj Excel-fil och importera</span><input type="file" accept=".xlsx,.csv,.txt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-import="1"></label>
+  <p class="note">På iPhone: välj Bläddra → OneDrive. Om OneDrive saknas, aktivera det under Platser i appen Filer. På Android: välj OneDrive i filväljaren, eller spara en kopia från OneDrive till Hämtade filer och välj den.</p>
+  <p class="note">Gröna rader läggs under Klara. Befintliga uppgifter skrivs inte över. Välj filen igen när arbetsordern har uppdaterats; detta är ingen automatisk OneDrive-synkning.</p>
+  ${lastImportText()}
+  </details>
+  <details class="card">
+    <summary style="padding:14px;cursor:pointer;font-weight:600">Säkerhetskopia</summary>
+    <p class="note">Spara jobb, kontaktuppgifter, kontroller och foton i Filer eller OneDrive. Kopian innehåller kunduppgifter. Spara den på en plats du har behörighet att använda.</p>
+    <button class="secondary" data-act="backup">Skapa säkerhetskopia</button>
+    <label class="camera"><span>Återställ från säkerhetskopia</span><input type="file" accept=".json,application/json" data-restore="1"></label>
+  </details>
+  <div class="menu"><button data-act="duplicates">Kontrollera dubbletter</button><button data-act="borda">${ICON.calc}Börda</button></div>
+  
   </div>
   <input class="dash-search" type="search" data-q="1" value="${esc(L.q||'')}" placeholder="Sök adress, EAN, order, mätarnr, kontakt" aria-label="Sök jobb">
   <div class="seg dash-segments" role="tablist">${['planerad','pågår','klar'].map(s=>`<button role="tab" aria-selected="${L.seg===s}" data-act="seg" data-s="${s}" class="${L.seg===s?'cur':''}">${s==='planerad'?'Planerade':s==='pågår'?'Pågående':'Klara'} ${n[s]||0}</button>`).join('')}</div>
