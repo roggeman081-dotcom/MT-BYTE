@@ -150,6 +150,55 @@ tr.sel td{color:var(--accent);font-weight:600}
   .job-hero h1{font-size:18px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}button:active{transform:none}}
+
+/* Dashboard 2026: endast presentation, aldrig ändringar i lagring eller arbetsordrar */
+.dash-header{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 0 18px}
+.dash-brand{display:flex;align-items:center;gap:10px;min-width:0}
+.dash-brand h1{margin:0;font-size:30px;letter-spacing:-.04em}
+.dash-brand small{font-size:12px;color:var(--muted);font-weight:600}
+.dash-mark{display:grid;place-items:center;width:42px;height:42px;border-radius:15px;background:var(--accent);color:#000;font-size:32px;font-weight:900}
+.dash-tools{border:1px solid #555;border-radius:22px;padding:10px 13px;font-weight:700;font-size:13px}
+.dash-speed{position:relative;overflow:hidden;border-radius:26px;border:1px solid #363b37;padding:16px 14px 13px;background:radial-gradient(ellipse at 50% 120%,#263921 0%,#111513 48%,#121212 100%);margin-bottom:14px}
+.dash-speed:before,.dash-speed:after{content:"";position:absolute;width:110%;height:60px;border:1px solid #415941;border-radius:50%;left:-5%;bottom:-36px;transform:rotate(-7deg);pointer-events:none}
+.dash-speed:after{bottom:-46px;transform:rotate(7deg);border-color:#334e33}
+.dash-speed-dial{position:relative;width:min(100%,330px);height:176px;margin:0 auto;overflow:hidden}
+.dash-speed-dial:before{content:"";position:absolute;left:10%;width:80%;aspect-ratio:1;border-radius:50%;top:12px;background:conic-gradient(from 270deg,var(--accent) 0 calc(var(--meter-progress)*1.8deg),#353b39 calc(var(--meter-progress)*1.8deg) 180deg,transparent 180deg 360deg);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 20px),#000 calc(100% - 18px));mask:radial-gradient(farthest-side,transparent calc(100% - 20px),#000 calc(100% - 18px));filter:drop-shadow(0 0 8px #c6fa48)}
+.dash-speed-inner{position:absolute;inset:53px 0 auto;text-align:center}
+.dash-speed-number{font-size:54px;line-height:1.1;font-weight:850;font-variant-numeric:tabular-nums;letter-spacing:-.05em}
+.dash-speed-number i{font-size:24px;color:var(--accent);font-style:normal;letter-spacing:0}
+.dash-speed-caption{display:block;color:#ddd;font-size:13px;font-weight:650}
+.dash-speed-foot{display:flex;justify-content:space-between;gap:10px;font-size:11px;color:var(--muted);font-weight:650;margin:0 3px}
+.dash-shortcuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.dash-shortcut{background:linear-gradient(145deg,#292c2b,#141717);border:1px solid #434744;border-radius:19px;min-height:69px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-weight:650;font-size:12px}
+.dash-shortcut:first-child{background:var(--accent);color:#000;border-color:var(--accent)}
+.dash-shortcut b{font-size:23px;line-height:1.15}
+.dash-toolbox{border-radius:18px;border:1px solid #404040;padding:10px 12px;background:var(--elev);margin:12px 0}
+.dash-toolbox[hidden]{display:none}
+.dash-toolbox h2{font-size:17px;margin:8px 0 12px}
+.dash-toolbox details{margin:7px 0}
+.dash-toolbox .menu{display:flex;flex-wrap:wrap;gap:8px}
+.dash-toolbox .menu button{background:var(--surface);border-radius:12px;padding:10px 12px}
+.dash-search{border-radius:20px;margin:12px 0 8px}
+.dash-segments{margin:10px 0 14px;gap:5px}
+.dash-segments button{padding:12px 2px;font-size:clamp(11px,3vw,14px);border-radius:17px}
+.dash-segments button.cur{background:var(--accent);color:#080808;box-shadow:none}
+.dash-jobs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.dash-job{min-width:0;position:relative;overflow:hidden;border:1px solid #444;border-radius:23px;background:linear-gradient(160deg,#222726,#121414)}
+.dash-job.s-pågår{border-color:var(--accent)}
+.dash-job-map{position:relative;height:92px;overflow:hidden;background:radial-gradient(circle at 73% 48%,#29382d,#171b1c 67%)}
+.dash-job-map svg{display:block;width:100%;height:100%}
+.dash-map-pin{position:absolute;top:30px;left:51%;width:23px;height:23px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:grid;place-items:center;background:var(--accent);color:#101010;font-size:10px;box-shadow:0 0 0 8px #c6fa481b}
+.dash-job-map a{position:absolute;bottom:5px;right:6px;background:#080b09df;border:1px solid #667066;border-radius:10px;padding:5px 6px;color:#fff;text-decoration:none;font-size:10px;font-weight:700}
+.dash-job-main{text-align:left;width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:12px 12px 14px;min-height:132px}
+.dash-job-address{font-size:15px;font-weight:800;line-height:1.2;overflow-wrap:anywhere}
+.dash-job-ratio{font-size:13px;color:#d1d4d1}
+.dash-job-contact{font-size:12px;color:#ddd;overflow-wrap:anywhere}
+.dash-job-state{margin-top:auto;padding:3px 8px;font-size:10px;border:1px solid #526352;border-radius:10px;color:var(--accent);font-weight:700}
+.dash-job-call{position:absolute;bottom:12px;right:10px;display:grid;place-items:center;width:35px;height:35px;border-radius:50%;color:#111;background:var(--accent);text-decoration:none;font-size:20px}
+.dash-secondary-actions{margin:16px 0;color:var(--muted);font-size:13px}
+.dash-secondary-actions summary{cursor:pointer;padding:8px}
+@media(max-width:360px){#app{padding-left:11px;padding-right:11px}.dash-jobs{gap:7px}.dash-job-main{padding:9px}.dash-job-address{font-size:13px}.dash-speed-foot{font-size:10px}}
+
 </style>
 </head>
 <body>
@@ -463,36 +512,48 @@ function lastImportText(){try{const x=JSON.parse(localStorage.getItem('mtbyte-la
 function vList(){
   const off=!navigator.onLine?'<span class="off">Offline – allt sparas i telefonen</span>':'';
   const n={planerad:0,'pågår':0,klar:0}; jobs.forEach(j=>n[j.status]=(n[j.status]||0)+1);
-  if(!L.seg) L.seg = n['pågår']?'pågår':n.planerad?'planerad':'pågår';
-  return `<div class="hero"><h1>Trafobyten</h1>${off}</div>
-  <p class="count">${jobs.length?`${jobs.length} jobb totalt`:'Inga byten än'}</p>
-  <details class="card" id="mobile-import"><summary style="padding:14px;cursor:pointer;font-weight:600">${ICON.imp} Hämta arbetsorder från fil / OneDrive</summary>
-  <p>Välj <strong>Arbetsorder LiRo (2).xlsx</strong> i <strong>OneDrive → Projekt 2026</strong>.</p>
-  <label class="camera"><span>Välj Excel-fil och importera</span><input type="file" accept=".xlsx,.csv,.txt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-import="1"></label>
-  <p class="note">På iPhone: välj Bläddra → OneDrive. Om OneDrive saknas, aktivera det under Platser i appen Filer. På Android: välj OneDrive i filväljaren, eller spara en kopia från OneDrive till Hämtade filer och välj den.</p>
-  <p class="note">Gröna rader läggs under Klara. Befintliga uppgifter skrivs inte över. Välj filen igen när arbetsordern har uppdaterats; detta är ingen automatisk OneDrive-synkning.</p>
-  ${lastImportText()}
-  </details>
-  <details class="card">
-    <summary style="padding:14px;cursor:pointer;font-weight:600">Säkerhetskopia</summary>
-    <p class="note">Spara jobb, kontaktuppgifter, kontroller och foton i Filer eller OneDrive. Kopian innehåller kunduppgifter. Spara den på en plats du har behörighet att använda.</p>
-    <button class="secondary" data-act="backup">Skapa säkerhetskopia</button>
-    <label class="camera"><span>Återställ från säkerhetskopia</span><input type="file" accept=".json,application/json" data-restore="1"></label>
-  </details>
-  <div class="menu"><button data-act="duplicates">Kontrollera dubbletter</button><button data-act="borda">${ICON.calc}Börda</button></div>
-  <button class="primary" data-act="new">Starta nytt byte</button>
-  <input type="search" data-q="1" value="${esc(L.q||'')}" placeholder="Sök adress, EAN, order, mätarnr, kontakt" style="margin:14px 0 4px" aria-label="Sök jobb">
-  <div class="seg" role="tablist">${['planerad','pågår','klar'].map(s=>`<button role="tab" aria-selected="${L.seg===s}" data-act="seg" data-s="${s}" class="${L.seg===s?'cur':''}">${s==='planerad'?'Planerade':s==='pågår'?'Pågående':'Klara'} ${n[s]||0}</button>`).join('')}</div>
-  ${n['pågår']?`<button class="secondary" data-act="moveplanned">Flytta pågående till Planerade (${n['pågår']})</button>`:''}
-  <div id="jl">${jobList()}</div>
-  ${L.seg==='planerad'&&n.planerad?`<button class="ghost" data-act="clearplanned">Rensa planerade uppdrag</button>`:''}`;
+  if(!L.seg) L.seg=n['pågår']?'pågår':n.planerad?'planerad':'pågår';
+  const total=n.planerad+n['pågår'], progress=total?Math.min(100,Math.round(100*n['pågår']/total)):0;
+  return `<div class="dash-header"><div class="dash-brand"><span class="dash-mark">ϟ</span><div><h1>MT-byte</h1><small>LiRo Elteknik</small></div></div><button class="dash-tools" type="button" data-act="tools" aria-label="Visa verktyg">⚙ Verktyg</button></div>
+  ${off}
+  <section class="dash-speed" aria-label="Pågående i förhållande till planerade">
+    <div class="dash-speed-dial" style="--meter-progress:${progress}"><div class="dash-speed-inner"><span class="dash-speed-number">${n['pågår']}<i> / ${n.planerad}</i></span><span class="dash-speed-caption">Pågår / Planerade</span></div></div>
+    <div class="dash-speed-foot"><span>${n.klar} klara av ${jobs.length} totalt</span><span>${progress}% av ej klara jobb pågår</span></div>
+  </section>
+  <div class="dash-shortcuts"><button type="button" class="dash-shortcut" data-act="new"><b>＋</b><span>Nytt byte</span></button><button type="button" class="dash-shortcut" data-act="tools"><b>⚙</b><span>Verktyg</span></button><button type="button" class="dash-shortcut" data-act="borda"><b>▦</b><span>Börda</span></button></div>
+  <div id="dash-toolbox" class="dash-toolbox" hidden>
+    <h2>Verktyg och säkerhetskopia</h2>
+    ${existingTools}
+  </div>
+  <input class="dash-search" type="search" data-q="1" value="${esc(L.q||'')}" placeholder="Sök adress, EAN, order, mätarnr, kontakt" aria-label="Sök jobb">
+  <div class="seg dash-segments" role="tablist">${['planerad','pågår','klar'].map(s=>`<button role="tab" aria-selected="${L.seg===s}" data-act="seg" data-s="${s}" class="${L.seg===s?'cur':''}">${s==='planerad'?'Planerade':s==='pågår'?'Pågående':'Klara'} ${n[s]||0}</button>`).join('')}</div>
+  <div id="jl" class="dash-jobs">${jobList()}</div>
+  ${n['pågår']?`<details class="dash-secondary-actions"><summary>Hantera pågående jobb</summary><button class="secondary" data-act="moveplanned">Flytta pågående till Planerade (${n['pågår']})</button></details>`:''}
+  ${L.seg==='planerad'&&n.planerad?`<details class="dash-secondary-actions"><summary>Fler åtgärder</summary><button class="ghost" data-act="clearplanned">Rensa planerade uppdrag</button></details>`:''}`;
 }
 function jobRow(j){
-  const o=j.order||{}, fb=j.forberedelse||{};
-  const sub=[o.newRatio?(o.oldRatio||'?')+' → '+o.newRatio:'', fb.bokad?'Bokad '+fb.bokad:'', o.ao||fmtDT(j.created)].filter(Boolean).join(' · ');
-  return `<button class="job" data-act="open" data-id="${j.id}">
-    <span class="cover s-${j.status}">${ICON.mt}</span><div><b>${esc(j.fore.adress||j.fore.ean||'Namnlöst byte')}</b><span>${esc(sub)}</span></div>
-    <span class="tag ${j.status==='pågår'?'on':''}">${j.excelKlar&&j.status==='klar'?'Klar (Excel)':(STATUS[j.status]||j.status)}</span></button>`;
+  const o=j.order||{}, fb=j.forberedelse||{}, fore=j.fore||{};
+  const address=fore.adress||fore.ean||'Namnlöst byte';
+  const sub=o.newRatio?(o.oldRatio||'?')+' → '+o.newRatio:'';
+  const contact=fb.kontakt||'', phone=fb.telefon||'';
+  const lookup=encodeURIComponent([fore.adress,'Helsingborg'].filter(Boolean).join(', '));
+  const url='https://www.openstreetmap.org/search?query='+lookup;
+  const safePhone=telHref(phone);
+  return `<article class="dash-job s-${esc(j.status)}">
+    <div class="dash-job-map">
+      <svg viewBox="0 0 320 96" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path d="M-40 90 Q56 10 148 43 T355 18M-30 7 Q95 90 181 56 T352 94M48-20 L102 125M250-20 L208 120" fill="none" stroke="#545c5e" stroke-width="10"/><path d="M-40 90 Q56 10 148 43 T355 18M-30 7 Q95 90 181 56 T352 94" fill="none" stroke="#222a2b" stroke-width="6"/></svg>
+      <span class="dash-map-pin" aria-hidden="true">●</span>
+      <a href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="Öppna karta för ${esc(address)}">Visa riktig karta ↗</a>
+    </div>
+    <button type="button" class="dash-job-main" data-act="open" data-id="${esc(j.id)}">
+      <span class="dash-job-address">${esc(address)}</span>
+      ${sub?`<span class="dash-job-ratio">${esc(sub)}</span>`:''}
+      ${contact?`<span class="dash-job-contact">${esc(contact)}</span>`:''}
+      ${!contact&&o.ao?`<span class="dash-job-contact">AO ${esc(o.ao)}</span>`:''}
+      <span class="dash-job-state">${j.excelKlar&&j.status==='klar'?'Klar (Excel)':(STATUS[j.status]||j.status)}</span>
+    </button>
+    ${safePhone?`<a class="dash-job-call" href="${esc(safePhone)}" aria-label="Ring ${esc(contact||'kontaktpersonen')}">☎</a>`:''}
+  </article>`;
 }
 const addressCollator = new Intl.Collator('sv', { numeric: true, sensitivity: 'accent' });
 function compareJobAddresses(a, b){
@@ -1191,6 +1252,7 @@ $app.addEventListener('click',async e=>{
  const n=jobs.filter(x=>x.status==='planerad').length; if(!confirm(`Ta bort ${n} uppdrag som inte är påbörjade? Påbörjade och klara byten påverkas inte.`)) return;
     await flushSave().catch(()=>{});
     for(const x of jobs.filter(x=>x.status==='planerad')) await dbDel('jobs',x.id); jobs=jobs.filter(x=>x.status!=='planerad'); return render(); }
+  if(a==='tools'){ const el=document.getElementById('dash-toolbox'); if(el){el.hidden=!el.hidden;if(!el.hidden)el.scrollIntoView({behavior:'smooth',block:'nearest'});} return; }
   if(a==='finish'){ j.status=j.status==='klar'?'pågår':'klar'; if(j.status==='klar') j.done=new Date().toISOString(); save(j); flash(j.status==='klar'?'Flyttat till Klara':'Flyttat till Pågående'); return render(true); }
   if(a==='delete'){ const n=(await photosOf(j.id)).length, namn=j.fore.adress||j.fore.ean||'detta byte';
     const msg=j.status==='klar'?`Radera ${namn} och ${n} foton? Går inte att ångra. Har du skickat protokollet?`:`Radera ${namn}${n?` och ${n} foton`:''}? Går inte att ångra.`;
